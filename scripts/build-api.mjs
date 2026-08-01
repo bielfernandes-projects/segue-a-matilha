@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const outfile = path.join(root, 'api', 'index.cjs');
+const outfile = path.join(root, 'api', 'index.js');
 
 rmSync(outfile, { force: true });
 
@@ -20,7 +20,7 @@ await build({
 });
 
 if (!existsSync(outfile)) {
-  throw new Error('Falha ao gerar api/index.cjs');
+  throw new Error('Falha ao gerar api/index.js');
 }
 
-console.log('[build-api] api/index.cjs gerado.');
+console.log('[build-api] api/index.js gerado.');

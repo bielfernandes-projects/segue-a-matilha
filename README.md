@@ -57,8 +57,13 @@ Monorepo com **npm workspaces**. O jogo roda 100% na Vercel: **Functions** para 
 segue-a-matilha/
 ├── package.json                   # workspaces + scripts raiz
 ├── vercel.json                    # build do web + roteia /api/* → api/index
+├── scripts/
+│   └── build-api.mjs              # esbuild: serverless-src/index.ts → api/index.js (bundle único)
+├── serverless-src/
+│   └── index.ts                   # fonte da Vercel Function (export default buildApp())
 ├── api/
-│   └── index.ts                   # Vercel Function (catch-all) → buildApp()
+│   ├── package.json               # { "type": "commonjs" } — o bundle roda como CJS
+│   └── index.js                   # gerado no build (gitignored) — Function catch-all
 ├── tsconfig.base.json             # config TS compartilhada
 ├── .env.example                   # variáveis de ambiente (referência)
 ├── supabase/
@@ -199,6 +204,7 @@ npm run dev:web        # http://localhost:5173
 | `npm run dev` | Sobe apenas o dev server (tsx watch) |
 | `npm run dev:web` | Vite dev server (proxy `/api` para o servidor) |
 | `npm run build` | Build do web (`tsc --noEmit && vite build`) e do server (esbuild CJS) |
+| `npm run build:api` | Gera `api/index.js` (bundle único da Vercel Function via esbuild) |
 | `npm run start` | Sobe o dev server via `tsx src/index.ts` |
 | `npm run lint` | `tsc --noEmit` em todos os workspaces |
 | `npm run test` | Vitest (`packages/game`) |
@@ -247,10 +253,15 @@ O jogo roda inteiro na Vercel — **sem processo contínuo**.
 vercel --prod
 ```
 
+O `vercel.json` manda o framework Vite buildar `apps/web` e roteia `/api/*` para a Function. A Function é **pré-bundlada** (`scripts/build-api.mjs` → `api/index.js`): o esbuild embrulha `@segue/game`, `@segue/shared`, express, supabase-js e dotenv num único arquivo CJS (a pasta `api/` tem `package.json` com `type: commonjs`). Isso evita o problema de imports ESM de pacotes com fonte TypeScript em runtime serverless.
+
+Passos:
+
 1. Na Vercel, configure as env vars **server-side**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `ADMIN_TOKEN`.
 2. Configure as env vars **do build do front** (preview/production): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-3. O `vercel.json` manda o framework Vite buildar `apps/web` e roteia `/api/*` para a Function `api/index.ts`.
-4. Rodar as migrações no Supabase (SQL Editor ou `supabase db push`).
+3. Rodar as migrações no Supabase (SQL Editor ou `supabase db push`).
+
+> Domínio: o subdomínio automático do projeto é `https://segue-a-matilha.vercel.app`. Um alias como `segueamatilha.vercel.app` exige a flag **custom domains** habilitada no projeto (Settings → Domains); sem ela, o alias cai no login do Vercel.
 
 ---
 

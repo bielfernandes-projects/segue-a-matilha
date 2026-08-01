@@ -26,10 +26,13 @@ export default function App() {
 
   const createRoom = useGameStore((s) => s.createRoom);
   const joinRoom = useGameStore((s) => s.joinRoom);
+  const rejoin = useGameStore((s) => s.rejoin);
   const leaveRoom = useGameStore((s) => s.leaveRoom);
   const startGame = useGameStore((s) => s.startGame);
   const submitAnswer = useGameStore((s) => s.submitAnswer);
   const forceReveal = useGameStore((s) => s.forceReveal);
+  const autoReveal = useGameStore((s) => s.autoReveal);
+  const heartbeat = useGameStore((s) => s.heartbeat);
   const nextStep = useGameStore((s) => s.nextStep);
   const playAgain = useGameStore((s) => s.playAgain);
   const clearError = useGameStore((s) => s.clearError);
@@ -37,19 +40,46 @@ export default function App() {
   const [modal, setModal] = useState<Modal>(null);
   const [joinCode, setJoinCode] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
-  const didInitUrl = useRef(false);
+  const didInit = useRef(false);
 
+  // Boot: rejoin automatico se houver token salvo (reconexao / refresh).
+  // Se a URL trouxer ?code= (QR code / link de convite), abre o modal de entrada.
   useEffect(() => {
-    if (didInitUrl.current) return;
-    didInitUrl.current = true;
+    if (didInit.current) return;
+    didInit.current = true;
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
-    if (code && !room) {
-      setJoinCode(code.toUpperCase().slice(0, 4));
-      setModal('join');
+    const openJoin = () => {
+      if (code) {
+        setJoinCode(code.toUpperCase().slice(0, 4));
+        setModal('join');
+      }
+    };
+    if (!useGameStore.getState().token) {
+      if (code) openJoin();
+      return;
     }
+    void rejoin().then((res) => {
+      if (!res.ok && !useGameStore.getState().room) openJoin();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Heartbeat enquanto estiver numa sala (mantem a conexao viva no serverless).
+  const roomCode = room?.code;
+  useEffect(() => {
+    if (!roomCode) return;
+    const send = () => void heartbeat();
+    const id = window.setInterval(send, 20_000);
+    window.addEventListener('focus', send);
+    document.addEventListener('visibilitychange', send);
+    send();
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener('focus', send);
+      document.removeEventListener('visibilitychange', send);
+    };
+  }, [roomCode, heartbeat]);
 
   const handleCreate = async (hostName: string, avatarId: string, settings: Partial<RoomSettings>) => {
     setIsLoading(true);
@@ -105,6 +135,7 @@ export default function App() {
             currentPlayerId={playerId ?? ''}
             onSubmitAnswer={(answer) => { void submitAnswer(answer); }}
             onHostForceReveal={() => { void forceReveal(); }}
+            onAutoReveal={() => { void autoReveal(); }}
           />
         );
       case 'reveal':

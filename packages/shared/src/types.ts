@@ -37,6 +37,9 @@ export interface Player {
   hasAnswered: boolean;
   currentAnswer?: string;
   absentRounds: number;
+
+  /** Ultimo heartbeat (ms epoch). Usado para detectar desconexao em serverless. */
+  lastSeenAt?: number;
 }
 
 export interface RevealAnswer {

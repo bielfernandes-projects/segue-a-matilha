@@ -1,5 +1,5 @@
 import type { Question } from '@segue/shared';
-import { countQuestions, insertQuestion } from './supabase';
+import { countQuestions, insertQuestion } from '@segue/game';
 import { INITIAL_QUESTIONS } from './questionsSeed';
 
 /**

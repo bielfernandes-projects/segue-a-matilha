@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Send, Clock, CheckCircle2, Dog, Lock } from 'lucide-react';
 import type { Room } from '@segue/shared';
 import { getAvatarById } from '@segue/shared';
@@ -9,6 +9,7 @@ interface QuestionScreenProps {
   currentPlayerId: string;
   onSubmitAnswer: (answer: string) => void;
   onHostForceReveal?: () => void;
+  onAutoReveal?: () => void;
   isLoading?: boolean;
 }
 
@@ -17,9 +18,11 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
   currentPlayerId,
   onSubmitAnswer,
   onHostForceReveal,
+  onAutoReveal,
   isLoading = false,
 }) => {
   const [answerInput, setAnswerInput] = useState('');
+  const didAutoReveal = useRef(false);
 
   const currentPlayer = room.players.find((p) => p.id === currentPlayerId);
   const isHost = currentPlayer?.isHost;
@@ -41,6 +44,14 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
     }, 500);
     return () => clearInterval(timer);
   }, [room.deadline, room.phase]);
+
+  // Quando o tempo esgota, qualquer cliente dispara o reveal (server valida o deadline).
+  useEffect(() => {
+    if (timeLeft <= 0 && !didAutoReveal.current) {
+      didAutoReveal.current = true;
+      onAutoReveal?.();
+    }
+  }, [timeLeft, onAutoReveal]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

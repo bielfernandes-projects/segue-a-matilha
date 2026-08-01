@@ -1,11 +1,13 @@
 import { LIMITS } from '@segue/shared';
-import { config } from '../config';
+import { config } from './config';
 import { fallbackGroup } from './fallback';
 
 export interface JudgeOutput {
   clusters: { rotulo: string; respostas: string[] }[];
   offline: boolean;
 }
+
+export type JudgeFn = (question: string, answers: string[]) => Promise<JudgeOutput>;
 
 function buildPrompt(question: string, answers: string[]): string {
   return `Você é o juiz imparcial e divertido do jogo de festa "Segue a Matilha".

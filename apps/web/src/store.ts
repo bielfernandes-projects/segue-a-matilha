@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import type { Room, RoomSettings } from '@segue/shared';
-import { emitAck } from './lib/socket';
-import { CLIENT_EVENTS } from '@segue/shared';
+import { apiRequest } from './lib/api';
+import type { Joined, RoomResponse } from './lib/api';
+import { subscribeRoom, unsubscribeRoom } from './lib/realtime';
 
 interface GameState {
   room: Room | null;
@@ -11,20 +12,22 @@ interface GameState {
   error: string;
 
   setRoom: (room: Room) => void;
-  setJoined: (payload: { roomCode: string; playerId: string; token: string }) => void;
   setConnected: (v: boolean) => void;
   setError: (msg: string) => void;
   clearError: () => void;
   reset: () => void;
 
-  createRoom: (hostName: string, avatarId: string, settings: Partial<RoomSettings>) => Promise<{ ok: boolean }>;
-  joinRoom: (roomCode: string, playerName: string, avatarId: string) => Promise<{ ok: boolean }>;
+  createRoom: (hostName: string, avatarId: string, settings: Partial<RoomSettings>) => Promise<{ ok: boolean; error?: string }>;
+  joinRoom: (roomCode: string, playerName: string, avatarId: string) => Promise<{ ok: boolean; error?: string }>;
+  rejoin: () => Promise<{ ok: boolean }>;
   leaveRoom: () => void;
-  startGame: () => Promise<{ ok: boolean }>;
-  submitAnswer: (answer: string) => Promise<{ ok: boolean }>;
-  forceReveal: () => Promise<{ ok: boolean }>;
-  nextStep: () => Promise<{ ok: boolean }>;
-  playAgain: () => Promise<{ ok: boolean }>;
+  startGame: () => Promise<{ ok: boolean; error?: string }>;
+  submitAnswer: (answer: string) => Promise<{ ok: boolean; error?: string }>;
+  forceReveal: () => Promise<{ ok: boolean; error?: string }>;
+  autoReveal: () => Promise<{ ok: boolean; error?: string }>;
+  nextStep: () => Promise<{ ok: boolean; error?: string }>;
+  playAgain: () => Promise<{ ok: boolean; error?: string }>;
+  heartbeat: () => Promise<void>;
 }
 
 const TOKEN_KEY = 'segue-matilha-token';
@@ -45,6 +48,12 @@ export function loadStoredToken(): string | null {
   }
 }
 
+function applyJoined(set: (partial: Partial<GameState>) => void, data: RoomResponse, joined: Joined): void {
+  saveToken(joined.token);
+  set({ room: data.room, playerId: joined.playerId, token: joined.token });
+  subscribeRoom(joined.roomCode);
+}
+
 export const useGameStore = create<GameState>((set, get) => ({
   room: null,
   playerId: null,
@@ -53,10 +62,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   error: '',
 
   setRoom: (room) => set({ room }),
-  setJoined: ({ playerId, token }) => {
-    saveToken(token);
-    set({ playerId, token });
-  },
   setConnected: (connected) => set({ connected }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: '' }),
@@ -66,53 +71,137 @@ export const useGameStore = create<GameState>((set, get) => ({
     } catch {
       /* ignore */
     }
-    set({ room: null, playerId: null, token: null, error: '' });
+    unsubscribeRoom();
+    set({ room: null, playerId: null, token: null, connected: false, error: '' });
   },
 
   createRoom: async (hostName, avatarId, settings) => {
-    const res = await emitAck(CLIENT_EVENTS.CREATE_ROOM, { hostName, avatarId, settings });
-    if (!res.ok) set({ error: res.error || 'Erro ao criar sala.' });
-    return res;
+    const res = await apiRequest<RoomResponse>('/api/rooms', { body: { hostName, avatarId, settings } });
+    if (res.ok) {
+      applyJoined(set, res.data, res.data.joined!);
+      return { ok: true };
+    }
+    set({ error: res.error });
+    return { ok: false, error: res.error };
   },
 
   joinRoom: async (roomCode, playerName, avatarId) => {
-    const res = await emitAck(CLIENT_EVENTS.JOIN_ROOM, { roomCode, playerName, avatarId });
-    if (!res.ok) set({ error: res.error || 'Erro ao entrar na sala.' });
-    return res;
+    const code = String(roomCode ?? '').trim().toUpperCase().slice(0, 4);
+    const res = await apiRequest<RoomResponse>(`/api/rooms/${code}/join`, { body: { playerName, avatarId } });
+    if (res.ok) {
+      applyJoined(set, res.data, res.data.joined!);
+      return { ok: true };
+    }
+    set({ error: res.error });
+    return { ok: false, error: res.error };
+  },
+
+  rejoin: async () => {
+    const token = loadStoredToken();
+    if (!token) {
+      set({ token: null });
+      return { ok: false };
+    }
+    const res = await apiRequest<RoomResponse>('/api/rooms/rejoin', { body: { token } });
+    if (res.ok) {
+      applyJoined(set, res.data, res.data.joined!);
+      return { ok: true };
+    }
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      /* ignore */
+    }
+    set({ token: null });
+    return { ok: false };
   },
 
   leaveRoom: () => {
-    void emitAck(CLIENT_EVENTS.LEAVE_ROOM, {});
+    const { room, token } = get();
+    if (room && token) {
+      void apiRequest(`/api/rooms/${room.code}/leave`, { body: { token } });
+    }
     get().reset();
   },
 
   startGame: async () => {
-    const res = await emitAck(CLIENT_EVENTS.START_GAME, {});
-    if (!res.ok) set({ error: res.error || 'Erro ao iniciar a partida.' });
-    return res;
+    const { room, token } = get();
+    if (!room || !token) return { ok: false };
+    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/start`, { body: { token } });
+    if (res.ok) {
+      set({ room: res.data.room, error: '' });
+      return { ok: true };
+    }
+    set({ error: res.error });
+    return { ok: false, error: res.error };
   },
 
   submitAnswer: async (answer) => {
-    const res = await emitAck(CLIENT_EVENTS.SUBMIT_ANSWER, { answer });
-    if (!res.ok) set({ error: res.error || 'Erro ao enviar resposta.' });
-    return res;
+    const { room, token } = get();
+    if (!room || !token) return { ok: false };
+    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/answer`, { body: { token, answer } });
+    if (res.ok) {
+      set({ room: res.data.room, error: '' });
+      return { ok: true };
+    }
+    set({ error: res.error });
+    return { ok: false, error: res.error };
   },
 
   forceReveal: async () => {
-    const res = await emitAck(CLIENT_EVENTS.FORCE_REVEAL, {});
-    if (!res.ok) set({ error: res.error || 'Erro ao revelar.' });
-    return res;
+    const { room, token } = get();
+    if (!room || !token) return { ok: false };
+    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/reveal`, { body: { token, force: true } });
+    if (res.ok) {
+      set({ room: res.data.room, error: '' });
+      return { ok: true };
+    }
+    set({ error: res.error });
+    return { ok: false, error: res.error };
+  },
+
+  autoReveal: async () => {
+    const { room, token } = get();
+    if (!room || !token) return { ok: false };
+    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/reveal`, { body: { token } });
+    if (res.ok) {
+      set({ room: res.data.room });
+      return { ok: true };
+    }
+    if (res.error !== 'O tempo ainda não acabou.') set({ error: res.error });
+    return { ok: false, error: res.error };
   },
 
   nextStep: async () => {
-    const res = await emitAck(CLIENT_EVENTS.NEXT_ROUND, {});
-    if (!res.ok) set({ error: res.error || 'Erro ao avançar.' });
-    return res;
+    const { room, token } = get();
+    if (!room || !token) return { ok: false };
+    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/next`, { body: { token } });
+    if (res.ok) {
+      set({ room: res.data.room, error: '' });
+      return { ok: true };
+    }
+    set({ error: res.error });
+    return { ok: false, error: res.error };
   },
 
   playAgain: async () => {
-    const res = await emitAck(CLIENT_EVENTS.PLAY_AGAIN, {});
-    if (!res.ok) set({ error: res.error || 'Erro ao reiniciar.' });
-    return res;
+    const { room, token } = get();
+    if (!room || !token) return { ok: false };
+    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/play-again`, { body: { token } });
+    if (res.ok) {
+      set({ room: res.data.room, error: '' });
+      return { ok: true };
+    }
+    set({ error: res.error });
+    return { ok: false, error: res.error };
+  },
+
+  heartbeat: async () => {
+    const { room, token } = get();
+    if (!room || !token) return;
+    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/heartbeat`, { body: { token } });
+    if (res.ok) {
+      set({ room: res.data.room, connected: true });
+    }
   },
 }));

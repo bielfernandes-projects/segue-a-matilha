@@ -1,0 +1,20 @@
+{
+  "name": "segue-a-matilha",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @segue/server",
+    "dev:server": "npm run dev --workspace @segue/server",
+    "dev:web": "npm run dev --workspace @segue/web",
+    "build": "npm run build --workspace @segue/web && npm run build --workspace @segue/server",
+    "start": "npm run start --workspace @segue/server",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run lint"
+  }
+}

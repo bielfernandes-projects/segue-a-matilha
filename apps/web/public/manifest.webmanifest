@@ -1,0 +1,14 @@
+{
+  "name": "Segue a Matilha",
+  "short_name": "Matilha",
+  "description": "O party game onde você adivinha o que a MAIORIA da matilha vai responder!",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05070A",
+  "theme_color": "#05070A",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

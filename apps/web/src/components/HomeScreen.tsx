@@ -1,6 +1,5 @@
 import React from 'react';
 import { Users, PlusCircle, LogIn, MessageSquarePlus, Award, Dog, ShieldAlert } from 'lucide-react';
-import { playClickSound, playWoofSound } from '../services/sound';
 
 interface HomeScreenProps {
   onCreateRoom: () => void;
@@ -27,7 +26,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <div className="relative inline-block">
           <div
             className="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-3 rounded-full bg-[#606C38] p-1 border-4 border-[#DDA15E] shadow-2xl flex items-center justify-center transform hover:rotate-3 transition-transform cursor-pointer"
-            onClick={() => playWoofSound()}
           >
             <div className="w-full h-full bg-[#05070A] rounded-full flex items-center justify-center text-5xl sm:text-6xl select-none">
               🐺
@@ -50,7 +48,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* Main Action Cards */}
       <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl">
         <button
-          onClick={() => { playWoofSound(); onCreateRoom(); }}
+          onClick={onCreateRoom}
           className="group relative flex flex-col items-start p-6 rounded-2xl bg-[#0A0E14] border-2 border-[#2D3139] hover:border-[#606C38] transition-all text-left overflow-hidden cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5"
         >
           <div className="w-12 h-12 rounded-full bg-[#606C38]/20 border border-[#606C38] flex items-center justify-center text-[#DDA15E] mb-4 group-hover:scale-110 transition-transform">
@@ -71,7 +69,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </button>
 
         <button
-          onClick={() => { playClickSound(); onJoinRoom(); }}
+          onClick={onJoinRoom}
           className="group relative flex flex-col items-start p-6 rounded-2xl bg-[#0A0E14] border-2 border-[#2D3139] hover:border-[#DDA15E] transition-all text-left overflow-hidden cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5"
         >
           <div className="w-12 h-12 rounded-full bg-[#DDA15E]/20 border border-[#DDA15E] flex items-center justify-center text-[#DDA15E] mb-4 group-hover:scale-110 transition-transform">
@@ -100,7 +98,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <span>Sistema de Pontuação (Fichas de AUmigos)</span>
           </h3>
           <button
-            onClick={() => { playClickSound(); onOpenRules(); }}
+            onClick={onOpenRules}
             className="text-xs text-[#FEFAE0] hover:text-[#DDA15E] font-bold uppercase tracking-wider underline cursor-pointer"
           >
             Ver Regras
@@ -131,7 +129,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* Footer / Suggest Button */}
       <div className="w-full flex items-center justify-center gap-4 text-xs text-[#A3A3A3] pt-2 pb-4">
         <button
-          onClick={() => { playClickSound(); onSuggestQuestion(); }}
+          onClick={onSuggestQuestion}
           className="flex items-center gap-2 text-[#A3A3A3] hover:text-[#DDA15E] font-semibold uppercase tracking-wider text-xs transition-colors cursor-pointer"
         >
           <MessageSquarePlus className="w-4 h-4 text-[#DDA15E]" />

@@ -188,7 +188,7 @@ export default function App() {
       <main className="flex-1">{renderScreen()}</main>
 
       {error && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] max-w-md w-[calc(100%-2rem)] bg-rose-950/90 border border-rose-500/50 rounded-xl px-4 py-3 text-sm text-rose-200 font-semibold flex items-center justify-between gap-3 shadow-2xl">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] max-w-md w-[calc(100%-2rem)] bg-rose-950/90 border border-rose-500/50 rounded-xl px-4 py-3 text-sm text-rose-200 font-semibold flex items-center justify-between gap-3 shadow-2xl">
           <span>{error}</span>
           <button
             onClick={clearError}

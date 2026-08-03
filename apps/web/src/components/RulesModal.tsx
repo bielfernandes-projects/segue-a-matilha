@@ -1,6 +1,5 @@
 import React from 'react';
 import { X, HelpCircle, Award, Dog } from 'lucide-react';
-import { playClickSound } from '../services/sound';
 
 interface RulesModalProps {
   onClose: () => void;
@@ -18,7 +17,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ onClose }) => {
             </h2>
           </div>
           <button
-            onClick={() => { playClickSound(); onClose(); }}
+            onClick={onClose}
             className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />
@@ -117,7 +116,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ onClose }) => {
         </div>
 
         <button
-          onClick={() => { playClickSound(); onClose(); }}
+          onClick={onClose}
           className="w-full py-4 rounded-xl bg-[#DDA15E] text-[#05070A] font-black uppercase tracking-tighter text-lg hover:bg-[#FEFAE0] transition-colors cursor-pointer shadow-xl"
         >
           Entendi, Vamos Jogar!

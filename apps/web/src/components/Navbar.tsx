@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { Volume2, VolumeX, Shield, HelpCircle, MessageSquarePlus, QrCode, LogOut } from 'lucide-react';
-import { toggleSound, isSoundEnabled, playClickSound } from '../services/sound';
+import React from 'react';
+import { Shield, HelpCircle, MessageSquarePlus, QrCode, LogOut } from 'lucide-react';
 
 interface NavbarProps {
   roomCode?: string;
@@ -21,14 +20,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenQR,
   onLeaveRoom,
 }) => {
-  const [soundOn, setSoundOn] = useState(isSoundEnabled());
-
-  const handleToggleSound = () => {
-    const updated = toggleSound();
-    setSoundOn(updated);
-    if (updated) playClickSound();
-  };
-
   return (
     <header className="sticky top-0 z-40 bg-[#05070A]/95 backdrop-blur-md border-b border-[#2D3139] px-4 sm:px-8 py-4 text-[#FEFAE0]">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -79,15 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
           <button
-            onClick={handleToggleSound}
-            className="p-2 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-all border border-transparent hover:border-[#2D3139]"
-            title={soundOn ? 'Mutar Áudio' : 'Ativar Áudio'}
-          >
-            {soundOn ? <Volume2 className="w-5 h-5 text-[#606C38]" /> : <VolumeX className="w-5 h-5 text-slate-500" />}
-          </button>
-
-          <button
-            onClick={() => { playClickSound(); onOpenSuggest(); }}
+            onClick={onOpenSuggest}
             className="hidden sm:flex items-center gap-2 px-4 py-2 bg-transparent border border-[#FEFAE0] text-xs font-bold uppercase tracking-widest text-[#FEFAE0] hover:bg-[#FEFAE0] hover:text-[#05070A] transition-colors"
             title="Sugerir Pergunta"
           >
@@ -96,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
-            onClick={() => { playClickSound(); onOpenRules(); }}
+            onClick={onOpenRules}
             className="p-2 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-all border border-transparent hover:border-[#2D3139]"
             title="Regras do Jogo"
           >
@@ -104,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
-            onClick={() => { playClickSound(); onOpenAdmin(); }}
+            onClick={onOpenAdmin}
             className="p-2 text-[#A3A3A3] hover:text-[#DDA15E] hover:bg-[#11161D] rounded-xl transition-all border border-transparent hover:border-[#2D3139]"
             title="Curadoria Admin"
           >
@@ -113,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {roomCode && onLeaveRoom && (
             <button
-              onClick={() => { playClickSound(); onLeaveRoom(); }}
+              onClick={onLeaveRoom}
               className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all border border-transparent hover:border-rose-500/30 ml-1"
               title="Sair da Sala"
             >

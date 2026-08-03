@@ -1,6 +1,5 @@
 import React from 'react';
 import { X, QrCode, Copy, Check } from 'lucide-react';
-import { playClickSound } from '../services/sound';
 
 interface QRCodeModalProps {
   roomCode: string;
@@ -12,7 +11,6 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ roomCode, onClose }) =
   const roomUrl = `${window.location.origin}?code=${roomCode}`;
 
   const handleCopy = () => {
-    playClickSound();
     navigator.clipboard.writeText(roomUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -31,7 +29,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ roomCode, onClose }) =
             </h2>
           </div>
           <button
-            onClick={() => { playClickSound(); onClose(); }}
+            onClick={onClose}
             className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />

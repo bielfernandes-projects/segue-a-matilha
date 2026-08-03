@@ -11,8 +11,10 @@ interface GameState {
   connected: boolean;
   judging: boolean;
   error: string;
+  pendingAnswer: string | null;
 
   setRoom: (room: Room) => void;
+  mergeRoom: (room: Room) => void;
   setConnected: (v: boolean) => void;
   setJudging: (v: boolean) => void;
   setError: (msg: string) => void;
@@ -63,8 +65,38 @@ export const useGameStore = create<GameState>((set, get) => ({
   connected: false,
   judging: false,
   error: '',
+  pendingAnswer: null,
 
   setRoom: (room) => set({ room }),
+
+  /**
+   * Merge de snapshots recebidos por broadcast/resync.
+   * Enquanto a resposta do jogador local ainda nao foi confirmada pelo servidor
+   * (pendingAnswer), preserva o estado otimista de hasAnswered/currentAnswer para
+   * que a tela nao "volte para o input" por causa de um broadcast intermediario.
+   */
+  mergeRoom: (incoming) => {
+    const { playerId, pendingAnswer } = get();
+    if (!pendingAnswer || !playerId) {
+      set({ room: incoming });
+      return;
+    }
+    const me = incoming.players.find((p) => p.id === playerId);
+    if (!me || me.hasAnswered || incoming.phase !== 'question') {
+      set({ room: incoming, pendingAnswer: null });
+      return;
+    }
+    set({
+      room: {
+        ...incoming,
+        answeredCount: incoming.answeredCount + 1,
+        players: incoming.players.map((p) =>
+          p.id === playerId ? { ...p, hasAnswered: true, currentAnswer: pendingAnswer } : p
+        ),
+      },
+    });
+  },
+
   setConnected: (connected) => set({ connected }),
   setJudging: (judging) => set({ judging }),
   setError: (error) => set({ error }),
@@ -76,7 +108,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       /* ignore */
     }
     unsubscribeRoom();
-    set({ room: null, playerId: null, token: null, connected: false, judging: false, error: '' });
+    set({ room: null, playerId: null, token: null, connected: false, judging: false, error: '', pendingAnswer: null });
   },
 
   createRoom: async (hostName, avatarId, settings) => {
@@ -95,6 +127,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (res.ok) {
       applyJoined(set, res.data, res.data.joined!);
       return { ok: true };
+    }
+    // Partida já em andamento: tenta voltar para a sala usando código + nome
+    // (reconecta o perfil existente com o mesmo nome em vez de criar um novo).
+    if (res.code === 'room_started') {
+      const re = await apiRequest<RoomResponse>(`/api/rooms/${code}/rejoin`, { body: { playerName, avatarId } });
+      if (re.ok) {
+        applyJoined(set, re.data, re.data.joined!);
+        return { ok: true };
+      }
+      set({ error: re.error });
+      return { ok: false, error: re.error };
     }
     set({ error: res.error });
     return { ok: false, error: res.error };
@@ -145,6 +188,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!room || !token || !playerId) return { ok: false };
     if (room.players.some((p) => p.id === playerId && p.hasAnswered)) return { ok: true };
     set({
+      pendingAnswer: answer,
       room: {
         ...room,
         answeredCount: room.answeredCount + 1,
@@ -155,10 +199,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
     const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/answer`, { body: { token, answer } });
     if (res.ok) {
-      set({ room: res.data.room, error: '', judging: false });
+      set({ room: res.data.room, error: '', judging: false, pendingAnswer: null });
       return { ok: true };
     }
-    set({ error: res.error });
+    set({ error: res.error, pendingAnswer: null });
     return { ok: false, error: res.error };
   },
 
@@ -215,7 +259,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!room || !token) return;
     const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/heartbeat`, { body: { token } });
     if (res.ok) {
-      set({ room: res.data.room, connected: true });
+      get().mergeRoom(res.data.room);
+      set({ connected: true });
     }
   },
 }));

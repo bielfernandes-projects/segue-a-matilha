@@ -3,7 +3,6 @@ import { X, LogIn, KeyRound } from 'lucide-react';
 import { AvatarPicker } from './AvatarPicker';
 import { DOG_AVATARS } from '@segue/shared';
 import type { DogBreedAvatar } from '@segue/shared';
-import { playClickSound, playWoofSound } from '../services/sound';
 
 interface JoinRoomModalProps {
   initialCode?: string;
@@ -34,7 +33,6 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
       return;
     }
     setError('');
-    playWoofSound();
     onJoin(roomCode.trim().toUpperCase(), playerName.trim(), selectedAvatar.id);
   };
 
@@ -50,7 +48,7 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
             </h2>
           </div>
           <button
-            onClick={() => { playClickSound(); onClose(); }}
+            onClick={onClose}
             className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />
@@ -63,6 +61,11 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
               {error}
             </div>
           )}
+
+          <p className="p-3 rounded-xl bg-[#11161D] border border-[#606C38]/40 text-[11px] text-[#A3A3A3] font-medium leading-relaxed">
+            💡 Já estava numa partida e quer <strong className="text-[#DDA15E]">voltar</strong>? Digite o código da sala
+            e o mesmo nome/apelido que você usou — o jogo reconecta seu perfil automaticamente.
+          </p>
 
           <div>
             <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest mb-2">

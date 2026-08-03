@@ -1,7 +1,7 @@
 import React from 'react';
 import { DOG_AVATARS } from '@segue/shared';
 import type { DogBreedAvatar } from '@segue/shared';
-import { playClickSound } from '../services/sound';
+import { DogAvatar } from './DogAvatar';
 
 interface AvatarPickerProps {
   selectedAvatarId: string;
@@ -21,18 +21,15 @@ export const AvatarPicker: React.FC<AvatarPickerProps> = ({ selectedAvatarId, on
             <button
               key={avatar.id}
               type="button"
-              onClick={() => {
-                playClickSound();
-                onSelectAvatar(avatar);
-              }}
+              onClick={() => onSelectAvatar(avatar)}
               className={`relative flex flex-col items-center justify-center p-2 rounded-xl border transition-all cursor-pointer ${
                 isSelected
                   ? 'border-2 border-[#DDA15E] bg-[#11161D] shadow-lg scale-105'
                   : 'border border-[#2D3139] bg-[#0A0E14] opacity-75 hover:opacity-100 hover:border-[#606C38]'
               }`}
             >
-              <div className="w-11 h-11 rounded-full bg-[#05070A] border border-[#2D3139] flex items-center justify-center text-2xl shadow-inner mb-1">
-                {avatar.emoji}
+              <div className="w-11 h-11 rounded-full bg-[#05070A] border border-[#2D3139] flex items-center justify-center shadow-inner mb-1">
+                <DogAvatar avatarId={avatar.id} size={34} />
               </div>
               <span className="text-[10px] font-bold text-[#FEFAE0] truncate w-full text-center">
                 {avatar.breed}

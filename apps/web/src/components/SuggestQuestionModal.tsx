@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { X, MessageSquarePlus, Send, CheckCircle2 } from 'lucide-react';
-import { playClickSound, playWoofSound } from '../services/sound';
 
 interface SuggestQuestionModalProps {
   onClose: () => void;
@@ -34,7 +33,6 @@ export const SuggestQuestionModal: React.FC<SuggestQuestionModalProps> = ({ onCl
       });
 
       if (res.ok) {
-        playWoofSound();
         setSubmitted(true);
       } else {
         const data = await res.json();
@@ -58,7 +56,7 @@ export const SuggestQuestionModal: React.FC<SuggestQuestionModalProps> = ({ onCl
             </h2>
           </div>
           <button
-            onClick={() => { playClickSound(); onClose(); }}
+            onClick={onClose}
             className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />
@@ -77,7 +75,7 @@ export const SuggestQuestionModal: React.FC<SuggestQuestionModalProps> = ({ onCl
               oficial!
             </p>
             <button
-              onClick={() => { playClickSound(); onClose(); }}
+              onClick={onClose}
               className="mt-2 px-6 py-2.5 rounded-xl bg-[#606C38] text-[#FEFAE0] text-xs font-bold uppercase tracking-wider hover:bg-[#FEFAE0] hover:text-[#05070A] transition-colors cursor-pointer"
             >
               Fechar

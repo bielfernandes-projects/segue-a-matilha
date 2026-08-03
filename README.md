@@ -14,17 +14,18 @@ Rodada após rodada, todos respondem uma pergunta sem resposta factual; uma IA a
 - **100% serverless** — sem Socket.IO, sem timers em memória: o estado da sala vive no Postgres (JSONB) e o tempo real usa o broadcast do Supabase Realtime.
 - **Server-authoritative** — todo o estado do jogo vive no servidor; o client é um espelho (anti-cheat por natureza). Durante a fase de resposta, o snapshot público **omite a resposta dos outros jogadores**.
 - **Concorrência otimista** — cada atualização de sala usa uma coluna `version` (`UPDATE ... WHERE version = ?`), com re-leitura e re-aplicação em caso de conflito (até 3 tentativas).
-- **Reconexão resiliente** — token de sessão no `localStorage` (coluna `sessions`); ao reconectar via `/api/rooms/rejoin`, volta exatamente onde estava.
+- **Reconexão resiliente** — token de sessão no `localStorage` (coluna `sessions`); ao reconectar via `/api/rooms/rejoin`, volta exatamente onde estava. Perdeu o token (troca de celular / browser fechado)? **Volte pelo código + nome**: se a partida já começou, `POST /api/rooms/:code/rejoin` reconecta o perfil com o mesmo nome em vez de criar um jogador novo.
 - **Heartbeat** — o client envia `/api/rooms/:code/heartbeat` a cada 20s; jogadores sem heartbeat por 45s são marcados como desconectados (fora da rodada em curso). O heartbeat só persiste quando há mudança real de presença (evita escrita desnecessária no banco).
-- **Atualizações suaves** — a resposta é marcada **otimisticamente** no client; enquanto a IA julga, o servidor emite `game:judging` e todos veem o overlay "IA fazendo a contagem...". Se o Realtime cair, o client faz polling leve de `GET /state` a cada 4s até reconectar.
+- **Atualizações suaves** — a resposta é marcada **otimisticamente** no client e o estado otimista é **preservado contra broadcasts intermediários** (a tela não "volta pro input" até o servidor confirmar a resposta); enquanto a IA julga, o servidor emite `game:judging` e todos veem o overlay "IA fazendo a contagem...". Se o Realtime cair, o client faz polling leve de `GET /state` a cada 4s até reconectar.
 - **Promoção automática de Host** — se o Host cair, o próximo conectado assume; a sala entra em estado `paused` até isso acontecer.
 - **Reveal sem timers no servidor** — cada round guarda um `deadline` absoluto; qualquer client dispara o reveal quando o tempo acaba (o servidor valida o deadline).
 - **Juiz de IA (OpenRouter)** com `temperature: 0`, timeout e **fallback determinístico offline** (rodada marcada como "offline" na tela).
 - **Dois modos de jogo**: Modo A (limite de rodadas) e Modo B (corrida até uma meta de pontos).
-- **Pódio com desempates** e suporte a vitória dividida (co-vencedores).
+- **Pódio com desempates** e suporte a vitória dividida (co-vencedores). Em empate total (ou com todos os jogadores em 0 pontos), o placar é ordenado **alfabeticamente** (pt-BR) em vez da ordem de entrada.
 - **Banco de perguntas**: ~230 aprovadas no seed, sugestão de usuário (status `pending`) e **painel admin** para curadoria.
-- **PWA instalável** com manifest, service worker e sons sintetizados via Web Audio API (sem arquivos de áudio).
-- **20 raças de avatares caninos** com cor e bordão próprios.
+- **PWA instalável** com manifest e service worker.
+- **20 raças de avatares caninos** com cor e bordão próprios, renderizadas em **SVG inline** — visual idêntico em qualquer celular/plataforma (sem emoji, que mudam de aparência entre Android/iOS/Windows).
+- **Mobile-first**: viewport sem zoom por pinça (`maximum-scale=1`) e placar com quebras responsivas para as pontuações nunca ficarem cortadas; erros/toasts aparecem no **topo** da tela.
 
 ---
 
@@ -45,7 +46,7 @@ Rodada após rodada, todos respondem uma pergunta sem resposta factual; uma IA a
   1. Maior pontuação total.
   2. Menos Lobos Solitários (menos rodadas com 0 pontos).
   3. Maior sequência consecutiva de rodadas com 2 pontos (streak).
-  4. Empate persistente → vitória dividida (co-vencedores).
+  4. Empate persistente → vitória dividida (co-vencedores). No placar, empate total (ou todos com 0 pontos) é resolvido em **ordem alfabética** (pt-BR).
 - **Replay**: "Jogar Novamente" mantém a mesma sala e jogadores, zera pontos, mantém as configurações, reembaralha o pool de perguntas e o Host reinicia. Novos jogadores podem entrar entre partidas.
 
 ---
@@ -103,10 +104,10 @@ segue-a-matilha/
         ├── store.ts               # store Zustand (REST + subscribe Realtime)
         ├── lib/api.ts             # fetch com envelope { ok, error }
         ├── lib/realtime.ts        # supabase-js → canal room:{code}
-        ├── services/sound.ts      # sons sintetizados (Web Audio)
         ├── index.css              # estilos globais / tema Tailwind
         └── components/            # Navbar, Home, Lobby, Question, Reveal,
-                                   # Leaderboard, Podium, Paused + modais
+                                   # Leaderboard, Podium, Paused, DogAvatar,
+                                   # AvatarPicker + modais
 ```
 
 ### Como o tempo real funciona (sem Socket.IO)
@@ -114,7 +115,7 @@ segue-a-matilha/
 1. Cada ação vira um `POST` REST que atualiza a sala no Postgres com **concorrência otimista** (`withRoom` em `packages/game/src/persistence.ts`).
 2. Depois da escrita, o servidor faz um **broadcast Realtime** (service role) no canal `room:{code}` com o snapshot público — **best-effort**: se o canal cair, o client detecta (`connected = false`) e faz polling leve de `GET /state` a cada 4s até reconectar.
 3. O client assina o canal `room:{code}` (`apps/web/src/lib/realtime.ts`) e troca o snapshot do store Zustand a cada `room:state`.
-4. Eventos pontuais chegam por eventos do broadcast: `game:judging` (juiz começou a contar — overlay em todas as telas), `game:reveal` / `game:over` (sons).
+4. Eventos pontuais chegam por eventos do broadcast: `game:judging` (juiz começou a contar — overlay em todas as telas), `game:reveal` / `game:over` (transições de fase).
 5. **O timer não roda no servidor.** A rodada guarda um `deadline` absoluto; o client mostra a contagem regressiva localmente e, ao zerar, chama `POST /api/rooms/:code/reveal` (qualquer jogador — o servidor valida o deadline). O Host pode forçar o reveal a qualquer momento (`force: true`).
 
 ### Máquina de estados da partida
@@ -141,6 +142,7 @@ lobby → question → reveal → leaderboard → question → … → finished
 | `/api/questions/suggest` | POST | — | Sugestão de pergunta → status `pending` |
 | `/api/rooms` | POST | — | Cria sala (Host) → `{ room, joined: {roomCode, playerId, token} }` |
 | `/api/rooms/:code/join` | POST | — | Entra na sala (nome + avatar) → `{ room, joined }` |
+| `/api/rooms/:code/rejoin` | POST | — | Volta a uma partida **em andamento** pelo código + nome (reconecta o perfil existente; se a sala estiver em `lobby`, use `/join`) → `{ room, joined }` |
 | `/api/rooms/rejoin` | POST | token | Reconecta sessão salva |
 | `/api/rooms/:code/heartbeat` | POST | token | Mantém jogador conectado (20s no client) |
 | `/api/rooms/:code/start` | POST | token | Host inicia a partida |

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Award, Crown, ArrowRight, Flame } from 'lucide-react';
 import type { Room } from '@segue/shared';
-import { getAvatarById, sortPlayers } from '@segue/shared';
-import { playWoofSound } from '../services/sound';
+import { sortPlayers } from '@segue/shared';
+import { DogAvatar } from './DogAvatar';
 
 interface LeaderboardScreenProps {
   room: Room;
@@ -48,7 +48,6 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
       {/* Leaderboard List */}
       <div className="space-y-3">
         {sortedPlayers.map((p, rank) => {
-          const avatar = getAvatarById(p.avatarId);
           const isCurrent = p.id === currentPlayerId;
           const majorityCount = p.roundScores.filter((s) => s === 2).length;
 
@@ -68,18 +67,15 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
           return (
             <div
               key={p.id}
-              className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+              className={`flex items-center justify-between gap-3 p-4 rounded-2xl border transition-all ${
                 isCurrent ? 'bg-[#11161D] border-2 border-[#DDA15E] shadow-xl' : 'bg-[#0A0E14] border-[#2D3139]'
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
                 <span className={`px-3 py-1 rounded-xl text-xs font-mono border ${rankClass}`}>{rankBadge}</span>
 
-                <div
-                  className="w-11 h-11 rounded-full bg-[#05070A] border-2 border-[#606C38] flex items-center justify-center text-2xl shadow-inner shrink-0"
-                  style={{ color: p.color }}
-                >
-                  {avatar.emoji}
+                <div className="w-11 h-11 rounded-full bg-[#05070A] border-2 border-[#606C38] flex items-center justify-center shadow-inner shrink-0">
+                  <DogAvatar avatarId={p.avatarId} size={36} />
                 </div>
 
                 <div className="min-w-0">
@@ -90,7 +86,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
                     {p.isHost && <Crown className="w-3.5 h-3.5 text-[#DDA15E] shrink-0" />}
                     {isCurrent && <span className="text-[10px] font-bold text-[#DDA15E] uppercase tracking-wider">(Você)</span>}
                   </div>
-                  <div className="flex items-center gap-3 text-[10px] text-[#A3A3A3] pt-0.5 font-medium">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[#A3A3A3] pt-0.5 font-medium">
                     <span>
                       🏆 Matilhas: <strong className="text-[#FEFAE0]">{majorityCount}</strong>
                     </span>
@@ -106,11 +102,11 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
                 </div>
               </div>
 
-              <div className="text-right shrink-0">
-                <span className="font-mono text-xl sm:text-2xl font-black text-[#DDA15E] block">
+              <div className="text-right shrink-0 min-w-0">
+                <span className="font-mono text-lg sm:text-2xl font-black text-[#DDA15E] block">
                   {p.score} <span className="text-xs font-sans text-[#A3A3A3]">pts</span>
                 </span>
-                <span className="text-[9px] uppercase tracking-wider font-semibold text-[#A3A3A3] block">
+                <span className="text-[9px] uppercase tracking-wider font-semibold text-[#A3A3A3] block whitespace-nowrap">
                   Fichas AUmigo
                 </span>
               </div>
@@ -123,7 +119,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
       <div className="pt-2">
         {isHost ? (
           <button
-            onClick={() => { playWoofSound(); onNextRound(); }}
+            onClick={onNextRound}
             disabled={isLoading}
             className="w-full py-4 rounded-xl bg-[#DDA15E] text-[#05070A] font-black uppercase tracking-tighter text-lg hover:bg-[#FEFAE0] transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xl"
           >

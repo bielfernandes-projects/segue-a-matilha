@@ -53,12 +53,13 @@ export function applyRoundScore(player: Player, points: number): void {
  * 1. Maior pontuacao total
  * 2. Menos Lobos Solitarios (rodadas de 0 pontos)
  * 3. Maior sequencia consecutiva de rodadas com 2 pontos (streak)
- * 4. Empate persistente => vitoria dividida (co-vencedores)
+ * 4. Empate total (inclui todos com 0 pontos) => ordem alfabetica (pt-BR)
  */
 export function comparePlayers(a: Player, b: Player): number {
   if (b.score !== a.score) return b.score - a.score;
   if (a.loneWolfCount !== b.loneWolfCount) return a.loneWolfCount - b.loneWolfCount;
-  return b.bestStreak - a.bestStreak;
+  if (b.bestStreak !== a.bestStreak) return b.bestStreak - a.bestStreak;
+  return a.name.localeCompare(b.name, 'pt-BR');
 }
 
 export function sortPlayers(players: Player[]): Player[] {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Shield, Check, Trash2, Plus, RefreshCw, Key } from 'lucide-react';
 import type { Question, QuestionStatus } from '@segue/shared';
-import { playClickSound, playWoofSound } from '../services/sound';
 
 interface AdminPanelModalProps {
   onClose: () => void;
@@ -30,7 +29,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
       return;
     }
     setError('');
-    playWoofSound();
     setIsAuthenticated(true);
   };
 
@@ -60,7 +58,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
   }, [activeTab, isAuthenticated]);
 
   const handleAction = async (questionId: string, action: 'approve' | 'reject' | 'delete') => {
-    playClickSound();
     try {
       if (action === 'delete') {
         const res = await fetch(`/api/admin/questions/${questionId}`, { method: 'DELETE', headers });
@@ -83,7 +80,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newQuestionText.trim()) return;
-    playWoofSound();
     try {
       const res = await fetch('/api/admin/questions', {
         method: 'POST',
@@ -112,7 +108,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
             </h2>
           </div>
           <button
-            onClick={() => { playClickSound(); onClose(); }}
+            onClick={onClose}
             className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />

@@ -1,8 +1,7 @@
 import React from 'react';
 import { ArrowRight, WifiOff } from 'lucide-react';
 import type { Room } from '@segue/shared';
-import { getAvatarById } from '@segue/shared';
-import { playWoofSound } from '../services/sound';
+import { DogAvatar } from './DogAvatar';
 
 interface RevealScreenProps {
   room: Room;
@@ -112,7 +111,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
                           : 'bg-[#11161D] border-[#2D3139] text-[#A3A3A3]'
                       }`}
                     >
-                      <span>{getAvatarById(r.avatarId).emoji}</span>
+                      <DogAvatar avatarId={r.avatarId} size={20} />
                       <span style={{ color: isCurrent ? r.color : undefined }}>{r.playerName}</span>
                       <span className="text-[10px] text-[#DDA15E] font-mono">+{cluster.points} pts</span>
                     </div>
@@ -128,7 +127,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
       <div className="pt-4">
         {isHost ? (
           <button
-            onClick={() => { playWoofSound(); onNextRound(); }}
+            onClick={onNextRound}
             disabled={isLoading}
             className="w-full py-4 rounded-xl bg-[#DDA15E] text-[#05070A] font-black uppercase tracking-tighter text-lg hover:bg-[#FEFAE0] transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xl"
           >

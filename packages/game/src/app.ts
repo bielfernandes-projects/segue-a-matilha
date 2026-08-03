@@ -223,6 +223,35 @@ export function buildApp(): express.Express {
     }
   });
 
+  app.post('/api/rooms/:code/rejoin', async (req, res) => {
+    try {
+      const code = String(req.params.code ?? '').trim().toUpperCase();
+      const playerName = String(req.body?.playerName ?? '').trim();
+      if (!playerName) throw new GameError('Digite seu nome.', 'bad_input');
+      const avatarId = String(req.body?.avatarId ?? '');
+
+      const result = await withRoom(code, (state, now) => {
+        const matches = state.players.filter((p) => p.name.toLowerCase() === playerName.toLowerCase());
+        if (matches.length === 0) {
+          throw new GameError('Perfil não encontrado nesta sala. Volte apenas se já participava desta partida.', 'player_not_found');
+        }
+        const player = matches.length === 1 ? matches[0] : matches.find((p) => avatarId && p.avatarId === avatarId) ?? matches[0];
+        reconnectPlayerState(state, player.id);
+        player.lastSeenAt = now;
+        return player.id;
+      });
+      if (!result) throw new GameError('Sala não encontrada. Verifique o código.', 'room_not_found');
+
+      const token = crypto.randomUUID();
+      await createSession(token, code, result.result, Date.now());
+      const publicRoom = buildPublicRoom(result.state, result.result);
+      await broadcastRoomState(code, publicRoom);
+      res.json({ ok: true, room: publicRoom, joined: { roomCode: code, playerId: result.result, token } });
+    } catch (e) {
+      err(res, e);
+    }
+  });
+
   app.post('/api/rooms/rejoin', async (req, res) => {
     try {
       const token = String(req.body?.token ?? '').trim();

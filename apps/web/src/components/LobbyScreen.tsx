@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Users, QrCode, Copy, Check, Play, Crown, Sparkles, Dog } from 'lucide-react';
 import type { Room } from '@segue/shared';
 import { getAvatarById } from '@segue/shared';
-import { playClickSound, playWoofSound } from '../services/sound';
+import { DogAvatar } from './DogAvatar';
 
 interface LobbyScreenProps {
   room: Room;
@@ -24,14 +24,12 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
   const isHost = currentPlayer?.isHost;
 
   const handleCopyCode = () => {
-    playClickSound();
     navigator.clipboard.writeText(room.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleCopyLink = () => {
-    playClickSound();
     const url = `${window.location.origin}?code=${room.code}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
@@ -121,10 +119,9 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
                 <div
                   className={`w-12 h-12 rounded-full bg-[#05070A] border-2 ${
                     isCurrent ? 'border-[#DDA15E]' : 'border-[#606C38]'
-                  } flex items-center justify-center text-2xl shadow-inner shrink-0`}
-                  style={{ color: p.color }}
+                  } flex items-center justify-center shadow-inner shrink-0`}
                 >
-                  {avatar.emoji}
+                  <DogAvatar avatarId={p.avatarId} size={38} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1">
@@ -152,7 +149,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
       <div className="pt-2">
         {isHost ? (
           <button
-            onClick={() => { playWoofSound(); onStartGame(); }}
+            onClick={onStartGame}
             disabled={isLoading}
             className="w-full py-5 rounded-xl bg-[#DDA15E] text-[#05070A] font-black uppercase tracking-tighter text-xl hover:bg-[#FEFAE0] transition-colors flex items-center justify-center gap-3 cursor-pointer shadow-xl disabled:opacity-50"
           >

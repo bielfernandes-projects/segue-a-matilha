@@ -19,6 +19,7 @@ export interface ApiOk<T> {
 export interface ApiFail {
   ok: false;
   error: string;
+  code?: string;
 }
 
 export type ApiResult<T> = ApiOk<T> | ApiFail;
@@ -40,7 +41,8 @@ export async function apiRequest<T>(
     if (!res.ok || data.ok === false) {
       const err = data.error;
       const message = typeof err === 'string' ? err : (err?.message ?? 'Erro inesperado.');
-      return { ok: false, error: message };
+      const code = typeof err === 'object' && err !== null && 'code' in err ? (err as { code?: string }).code : undefined;
+      return { ok: false, error: message, code };
     }
     return { ok: true, data };
   } catch {

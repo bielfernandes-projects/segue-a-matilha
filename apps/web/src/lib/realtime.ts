@@ -5,7 +5,6 @@ import type { Room } from '@segue/shared';
 import { useGameStore } from '../store';
 import { apiRequest } from './api';
 import type { RoomResponse } from './api';
-import { playRevealChime, playVictoryFanfare } from '../services/sound';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -44,7 +43,7 @@ function startFallbackSync(code: string): void {
       `/api/rooms/${code}/state?token=${encodeURIComponent(token)}`,
       { method: 'GET' }
     );
-    if (res.ok) useGameStore.getState().setRoom(res.data.room);
+    if (res.ok) useGameStore.getState().mergeRoom(res.data.room);
   };
   void poll();
   fallbackTimer = window.setInterval(poll, FALLBACK_SYNC_INTERVAL_MS);
@@ -65,20 +64,18 @@ export function subscribeRoom(code: string): void {
     .on('broadcast', { event: SERVER_EVENTS.ROOM_STATE }, ({ payload }: BroadcastPayload) => {
       if (payload?.room) {
         useGameStore.getState().setJudging(false);
-        useGameStore.getState().setRoom(payload.room);
+        useGameStore.getState().mergeRoom(payload.room);
       }
     })
     .on('broadcast', { event: SERVER_EVENTS.JUDGING }, ({ payload }: BroadcastPayload) => {
       useGameStore.getState().setJudging(true);
-      if (payload?.room) useGameStore.getState().setRoom(payload.room);
+      if (payload?.room) useGameStore.getState().mergeRoom(payload.room);
     })
     .on('broadcast', { event: SERVER_EVENTS.REVEAL }, () => {
       useGameStore.getState().setJudging(false);
-      playRevealChime();
     })
     .on('broadcast', { event: SERVER_EVENTS.GAME_OVER }, () => {
       useGameStore.getState().setJudging(false);
-      playVictoryFanfare();
     })
     .on('broadcast', { event: SERVER_EVENTS.PLAYER_REMOVED }, ({ payload }: BroadcastPayload) => {
       if (payload?.message) useGameStore.getState().setError(payload.message);

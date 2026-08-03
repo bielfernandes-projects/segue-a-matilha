@@ -1,8 +1,8 @@
 import React from 'react';
 import { Trophy, Crown, RefreshCw, Home, Award, Sparkles } from 'lucide-react';
 import type { Room } from '@segue/shared';
-import { getAvatarById, sortPlayers, isTiedForRank } from '@segue/shared';
-import { playWoofSound, playClickSound } from '../services/sound';
+import { sortPlayers, isTiedForRank } from '@segue/shared';
+import { DogAvatar } from './DogAvatar';
 
 interface PodiumScreenProps {
   room: Room;
@@ -27,10 +27,6 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
   const second = sortedPlayers[1];
   const third = sortedPlayers[2];
 
-  const champAvatar = champion ? getAvatarById(champion.avatarId) : null;
-  const secondAvatar = second ? getAvatarById(second.avatarId) : null;
-  const thirdAvatar = third ? getAvatarById(third.avatarId) : null;
-
   const hasTie = !!second && !!champion && isTiedForRank(champion, second);
 
   return (
@@ -54,13 +50,13 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
 
       {/* Visual Podium Steps */}
       <div className="flex items-end justify-center gap-3 sm:gap-6 pt-8 pb-4 max-w-xl mx-auto w-full">
-        {second && secondAvatar && (
+        {second && (
           <div className="flex flex-col items-center flex-1 order-1">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#05070A] border-4 border-[#606C38] shadow-xl flex items-center justify-center text-3xl sm:text-4xl relative mb-2">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#05070A] border-4 border-[#606C38] shadow-xl flex items-center justify-center relative mb-2">
               <span className="absolute -top-3 bg-[#606C38] text-[#FEFAE0] text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
                 🥈 2º Lugar
               </span>
-              {secondAvatar.emoji}
+              <DogAvatar avatarId={second.avatarId} size={44} />
             </div>
             <span className="font-bold text-xs sm:text-sm text-[#FEFAE0] truncate max-w-[100px] text-center">
               {second.name}
@@ -73,15 +69,15 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
           </div>
         )}
 
-        {champion && champAvatar && (
+        {champion && (
           <div className="flex flex-col items-center flex-1 order-2 -mt-6 z-10">
             <div className="relative">
               <Crown className="w-8 h-8 text-[#DDA15E] animate-bounce mx-auto mb-1 drop-shadow-md" />
-              <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-[#05070A] border-4 border-[#DDA15E] shadow-2xl flex items-center justify-center text-4xl sm:text-5xl relative mb-2">
+              <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-[#05070A] border-4 border-[#DDA15E] shadow-2xl flex items-center justify-center relative mb-2">
                 <span className="absolute -top-3 bg-[#DDA15E] text-[#05070A] text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow">
                   🥇 1º VENCEDOR
                 </span>
-                {champAvatar.emoji}
+                <DogAvatar avatarId={champion.avatarId} size={56} />
               </div>
             </div>
             <span className="font-black text-sm sm:text-base text-[#FEFAE0] truncate max-w-[120px] text-center uppercase tracking-tight italic">
@@ -96,13 +92,13 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
           </div>
         )}
 
-        {third && thirdAvatar && (
+        {third && (
           <div className="flex flex-col items-center flex-1 order-3">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#05070A] border-4 border-[#2D3139] shadow-xl flex items-center justify-center text-3xl sm:text-4xl relative mb-2">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#05070A] border-4 border-[#2D3139] shadow-xl flex items-center justify-center relative mb-2">
               <span className="absolute -top-3 bg-[#11161D] text-[#A3A3A3] text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#2D3139]">
                 🥉 3º Lugar
               </span>
-              {thirdAvatar.emoji}
+              <DogAvatar avatarId={third.avatarId} size={44} />
             </div>
             <span className="font-bold text-xs sm:text-sm text-[#FEFAE0] truncate max-w-[100px] text-center">
               {third.name}
@@ -125,13 +121,12 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
 
         <div className="space-y-2">
           {sortedPlayers.map((p, idx) => {
-            const avatar = getAvatarById(p.avatarId);
             const majorityCount = p.roundScores.filter((s) => s === 2).length;
             return (
               <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-[#11161D] border border-[#2D3139] text-xs">
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-bold text-[#DDA15E] w-6">#{idx + 1}</span>
-                  <span className="text-lg">{avatar.emoji}</span>
+                  <DogAvatar avatarId={p.avatarId} size={24} />
                   <span className="font-bold text-[#FEFAE0]">{p.name}</span>
                   {p.id === currentPlayerId && <span className="text-[9px] font-bold text-[#DDA15E] uppercase">(Você)</span>}
                 </div>
@@ -152,7 +147,7 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         {isHost && (
           <button
-            onClick={() => { playWoofSound(); onRestartGame(); }}
+            onClick={onRestartGame}
             disabled={isLoading}
             className="flex-1 py-4 rounded-xl bg-[#DDA15E] text-[#05070A] font-black uppercase tracking-tighter text-lg hover:bg-[#FEFAE0] transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xl"
           >
@@ -162,7 +157,7 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
         )}
 
         <button
-          onClick={() => { playClickSound(); onGoHome(); }}
+          onClick={onGoHome}
           className="flex-1 py-4 rounded-xl bg-transparent border border-[#FEFAE0] text-[#FEFAE0] font-bold text-xs uppercase tracking-widest hover:bg-[#FEFAE0] hover:text-[#05070A] transition-colors flex items-center justify-center gap-2 cursor-pointer"
         >
           <Home className="w-4 h-4 text-[#DDA15E]" />

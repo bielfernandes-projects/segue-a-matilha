@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Send, Clock, CheckCircle2, Dog, Lock } from 'lucide-react';
 import type { Room } from '@segue/shared';
-import { getAvatarById } from '@segue/shared';
-import { playClickSound, playWoofSound, playTickSound } from '../services/sound';
+import { DogAvatar } from './DogAvatar';
 
 interface QuestionScreenProps {
   room: Room;
@@ -44,10 +43,7 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
     setTimeLeft(room.deadline ? Math.max(0, Math.ceil((room.deadline - Date.now()) / 1000)) : room.settings.timeLimitSeconds);
     const timer = setInterval(() => {
       const next = room.deadline ? Math.max(0, Math.ceil((room.deadline - Date.now()) / 1000)) : room.settings.timeLimitSeconds;
-      setTimeLeft((prev) => {
-        if (next < prev && next <= 6 && next > 0) playTickSound();
-        return next;
-      });
+      setTimeLeft(next);
     }, 500);
     return () => clearInterval(timer);
   }, [room.deadline, room.phase]);
@@ -63,7 +59,6 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!answerInput.trim() || currentPlayer?.hasAnswered) return;
-    playWoofSound();
     onSubmitAnswer(answerInput.trim());
   };
 
@@ -174,7 +169,7 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
 
             {isHost && onHostForceReveal && (
               <button
-                onClick={() => { playWoofSound(); onHostForceReveal(); }}
+                onClick={onHostForceReveal}
                 className="text-[10px] font-bold text-[#DDA15E] hover:text-[#FEFAE0] bg-transparent border border-[#DDA15E] px-3 py-1 rounded-xl uppercase tracking-wider cursor-pointer transition-colors"
               >
                 Revelar Agora (Host)
@@ -184,7 +179,6 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
 
           <div className="flex flex-wrap gap-2">
             {room.players.map((p) => {
-              const avatar = getAvatarById(p.avatarId);
               return (
                 <div
                   key={p.id}
@@ -192,7 +186,7 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
                     p.hasAnswered ? 'bg-[#11161D] border-[#606C38] text-[#FEFAE0]' : 'bg-[#11161D]/40 border-[#2D3139] text-[#A3A3A3]'
                   }`}
                 >
-                  <span>{avatar.emoji}</span>
+                  <DogAvatar avatarId={p.avatarId} size={20} />
                   <span>{p.name}</span>
                   {p.hasAnswered ? <span className="text-[#606C38] text-[10px]">🐾</span> : <span className="text-[#A3A3A3] text-[10px]">...</span>}
                 </div>

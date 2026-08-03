@@ -3,7 +3,6 @@ import { X, Dices, Target, Layers, Play, Timer } from 'lucide-react';
 import { AvatarPicker } from './AvatarPicker';
 import { DOG_AVATARS } from '@segue/shared';
 import type { DogBreedAvatar, GameMode, RoomSettings } from '@segue/shared';
-import { playClickSound, playWoofSound } from '../services/sound';
 
 interface CreateRoomModalProps {
   onClose: () => void;
@@ -27,7 +26,6 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
       return;
     }
     setError('');
-    playWoofSound();
     onCreate(hostName.trim(), selectedAvatar.id, {
       mode,
       totalRounds,
@@ -48,7 +46,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
             </h2>
           </div>
           <button
-            onClick={() => { playClickSound(); onClose(); }}
+            onClick={onClose}
             className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />
@@ -89,7 +87,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => { playClickSound(); setMode('rounds'); }}
+                onClick={() => setMode('rounds')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   mode === 'rounds'
                     ? 'border-2 border-[#606C38] bg-[#11161D]'
@@ -105,7 +103,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
 
               <button
                 type="button"
-                onClick={() => { playClickSound(); setMode('target'); }}
+                onClick={() => setMode('target')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   mode === 'target'
                     ? 'border-2 border-[#DDA15E] bg-[#11161D]'

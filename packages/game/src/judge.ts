@@ -91,7 +91,8 @@ export async function groupAnswers(question: string, answers: string[]): Promise
         respostas: (c.respostas as unknown[]).map(String),
       }));
     return { clusters, offline: false };
-  } catch {
+  } catch (e) {
+    console.error('[judge] fallback offline:', e instanceof Error ? e.message : e);
     return { clusters: fallbackGroup(answers), offline: true };
   }
 }

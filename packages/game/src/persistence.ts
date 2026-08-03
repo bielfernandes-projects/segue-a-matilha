@@ -232,7 +232,7 @@ export interface WithRoomResult<T> {
 export async function withRoom<T>(
   code: string,
   fn: (state: GameRoom, now: number) => T | Promise<T>,
-  opts: { reap?: boolean; maxRetries?: number } = {}
+  opts: { reap?: boolean; maxRetries?: number; detectChanges?: boolean } = {}
 ): Promise<WithRoomResult<T> | null> {
   const maxRetries = opts.maxRetries ?? 3;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -240,7 +240,11 @@ export async function withRoom<T>(
     if (!ref) return null;
     const now = Date.now();
     if (opts.reap !== false) reapStale(ref.state, now);
+    const before = opts.detectChanges ? JSON.stringify(ref.state) : null;
     const result = await fn(ref.state, now);
+    if (opts.detectChanges && before === JSON.stringify(ref.state)) {
+      return { result, state: ref.state };
+    }
     if (await writeRoom(ref, now)) return { result, state: ref.state };
   }
   throw new GameError('Conflito de concorrência. Tente novamente.', 'concurrency');

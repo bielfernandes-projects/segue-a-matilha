@@ -9,10 +9,12 @@ interface GameState {
   playerId: string | null;
   token: string | null;
   connected: boolean;
+  judging: boolean;
   error: string;
 
   setRoom: (room: Room) => void;
   setConnected: (v: boolean) => void;
+  setJudging: (v: boolean) => void;
   setError: (msg: string) => void;
   clearError: () => void;
   reset: () => void;
@@ -59,10 +61,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   playerId: null,
   token: null,
   connected: false,
+  judging: false,
   error: '',
 
   setRoom: (room) => set({ room }),
   setConnected: (connected) => set({ connected }),
+  setJudging: (judging) => set({ judging }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: '' }),
   reset: () => {
@@ -72,7 +76,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       /* ignore */
     }
     unsubscribeRoom();
-    set({ room: null, playerId: null, token: null, connected: false, error: '' });
+    set({ room: null, playerId: null, token: null, connected: false, judging: false, error: '' });
   },
 
   createRoom: async (hostName, avatarId, settings) => {
@@ -137,11 +141,21 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   submitAnswer: async (answer) => {
-    const { room, token } = get();
-    if (!room || !token) return { ok: false };
+    const { room, token, playerId } = get();
+    if (!room || !token || !playerId) return { ok: false };
+    if (room.players.some((p) => p.id === playerId && p.hasAnswered)) return { ok: true };
+    set({
+      room: {
+        ...room,
+        answeredCount: room.answeredCount + 1,
+        players: room.players.map((p) =>
+          p.id === playerId ? { ...p, hasAnswered: true, currentAnswer: answer } : p
+        ),
+      },
+    });
     const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/answer`, { body: { token, answer } });
     if (res.ok) {
-      set({ room: res.data.room, error: '' });
+      set({ room: res.data.room, error: '', judging: false });
       return { ok: true };
     }
     set({ error: res.error });

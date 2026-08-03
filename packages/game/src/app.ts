@@ -24,6 +24,7 @@ import {
 } from './persistence';
 import {
   buildPublicRoom,
+  CONNECTED_STALE_MS,
   createRoomState,
   GameError,
   joinRoomState,
@@ -256,10 +257,13 @@ export function buildApp(): express.Express {
           markDisconnectedState(state, session.playerId);
           return false;
         }
+        if (player.connected && player.lastSeenAt != null && now - player.lastSeenAt < CONNECTED_STALE_MS / 2) {
+          return true;
+        }
         player.connected = true;
         player.lastSeenAt = now;
         return true;
-      });
+      }, { detectChanges: true });
       if (!result) throw new GameError('Sala não encontrada.', 'room_not_found');
       if (!result.result) {
         await deleteSession(session.token);
@@ -301,6 +305,7 @@ export function buildApp(): express.Express {
         const player = state.players.find((p) => p.id === session.playerId);
         if (player) player.lastSeenAt = now;
         if (needsReveal) {
+          await broadcastNamed(code, SERVER_EVENTS.JUDGING, buildPublicRoom(state, session.playerId));
           await processRevealState(state);
           return 'revealed';
         }
@@ -333,6 +338,7 @@ export function buildApp(): express.Express {
         if (!force && !deadlinePassed) throw new GameError('O tempo ainda não acabou.', 'too_early');
         if (force && !player.isHost) throw new GameError('Apenas o Host pode revelar agora.', 'forbidden');
         player.lastSeenAt = now;
+        await broadcastNamed(code, SERVER_EVENTS.JUDGING, buildPublicRoom(state, session.playerId));
         await processRevealState(state);
         return true;
       });

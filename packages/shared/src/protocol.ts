@@ -17,6 +17,7 @@ export const SERVER_EVENTS = {
   ROUND_START: 'game:round-start',
   ANSWER_COUNT: 'game:answer-count',
   REVEAL: 'game:reveal',
+  JUDGING: 'game:judging',
   LEADERBOARD: 'game:leaderboard',
   GAME_OVER: 'game:over',
   HOST_CHANGED: 'room:host-changed',

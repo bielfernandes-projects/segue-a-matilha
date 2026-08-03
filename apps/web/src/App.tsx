@@ -22,6 +22,7 @@ export default function App() {
   const room = useGameStore((s) => s.room);
   const playerId = useGameStore((s) => s.playerId);
   const connected = useGameStore((s) => s.connected);
+  const judging = useGameStore((s) => s.judging);
   const error = useGameStore((s) => s.error);
 
   const createRoom = useGameStore((s) => s.createRoom);
@@ -136,6 +137,7 @@ export default function App() {
             onSubmitAnswer={(answer) => { void submitAnswer(answer); }}
             onHostForceReveal={() => { void forceReveal(); }}
             onAutoReveal={() => { void autoReveal(); }}
+            judging={judging}
           />
         );
       case 'reveal':

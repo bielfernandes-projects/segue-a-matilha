@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
+  "regions": ["gru1"],
   "buildCommand": "node scripts/build-api.mjs && npm run build -w @segue/web",
   "outputDirectory": "apps/web/dist",
   "rewrites": [

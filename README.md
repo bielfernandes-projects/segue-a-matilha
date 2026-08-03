@@ -15,7 +15,8 @@ Rodada após rodada, todos respondem uma pergunta sem resposta factual; uma IA a
 - **Server-authoritative** — todo o estado do jogo vive no servidor; o client é um espelho (anti-cheat por natureza). Durante a fase de resposta, o snapshot público **omite a resposta dos outros jogadores**.
 - **Concorrência otimista** — cada atualização de sala usa uma coluna `version` (`UPDATE ... WHERE version = ?`), com re-leitura e re-aplicação em caso de conflito (até 3 tentativas).
 - **Reconexão resiliente** — token de sessão no `localStorage` (coluna `sessions`); ao reconectar via `/api/rooms/rejoin`, volta exatamente onde estava.
-- **Heartbeat** — o client envia `/api/rooms/:code/heartbeat` a cada 20s; jogadores sem heartbeat por 45s são marcados como desconectados (fora da rodada em curso).
+- **Heartbeat** — o client envia `/api/rooms/:code/heartbeat` a cada 20s; jogadores sem heartbeat por 45s são marcados como desconectados (fora da rodada em curso). O heartbeat só persiste quando há mudança real de presença (evita escrita desnecessária no banco).
+- **Atualizações suaves** — a resposta é marcada **otimisticamente** no client; enquanto a IA julga, o servidor emite `game:judging` e todos veem o overlay "IA fazendo a contagem...". Se o Realtime cair, o client faz polling leve de `GET /state` a cada 4s até reconectar.
 - **Promoção automática de Host** — se o Host cair, o próximo conectado assume; a sala entra em estado `paused` até isso acontecer.
 - **Reveal sem timers no servidor** — cada round guarda um `deadline` absoluto; qualquer client dispara o reveal quando o tempo acaba (o servidor valida o deadline).
 - **Juiz de IA (OpenRouter)** com `temperature: 0`, timeout e **fallback determinístico offline** (rodada marcada como "offline" na tela).
@@ -110,9 +111,9 @@ segue-a-matilha/
 ### Como o tempo real funciona (sem Socket.IO)
 
 1. Cada ação vira um `POST` REST que atualiza a sala no Postgres com **concorrência otimista** (`withRoom` em `packages/game/src/persistence.ts`).
-2. Depois da escrita, o servidor faz um **broadcast Realtime** (service role) no canal `room:{code}` com o snapshot público — **best-effort**: se falhar, os clientes resincronizam pelo próximo heartbeat.
+2. Depois da escrita, o servidor faz um **broadcast Realtime** (service role) no canal `room:{code}` com o snapshot público — **best-effort**: se o canal cair, o client detecta (`connected = false`) e faz polling leve de `GET /state` a cada 4s até reconectar.
 3. O client assina o canal `room:{code}` (`apps/web/src/lib/realtime.ts`) e troca o snapshot do store Zustand a cada `room:state`.
-4. Eventos pontuais de som chegam pelos eventos `game:reveal` / `game:over` do broadcast.
+4. Eventos pontuais chegam por eventos do broadcast: `game:judging` (juiz começou a contar — overlay em todas as telas), `game:reveal` / `game:over` (sons).
 5. **O timer não roda no servidor.** A rodada guarda um `deadline` absoluto; o client mostra a contagem regressiva localmente e, ao zerar, chama `POST /api/rooms/:code/reveal` (qualquer jogador — o servidor valida o deadline). O Host pode forçar o reveal a qualquer momento (`force: true`).
 
 ### Máquina de estados da partida
@@ -168,7 +169,7 @@ Três tabelas:
 
 `packages/game/src/judge.ts` chama `POST /api/v1/chat/completions` com `temperature: 0` e `response_format: {type:'json_object'}` para agrupar as respostas da rodada pelo sentido, devolvendo `{ clusters: [{rotulo, respostas: [...]}], offline }`.
 
-- Timeout via `AbortController` + 1 retry.
+- Timeout via `AbortController` (6s) e sem retry. Enquanto o juiz responde, o servidor emite `game:judging` para todos os clientes (overlay "IA fazendo a contagem..." na tela de pergunta).
 - Sem `OPENROUTER_API_KEY`, erro ou resposta fora do shape esperado → **`fallback.ts`**: normaliza (trim, lowercase, remove acentos via NFD, remove pontuação, colapsa espaços) + colapsa plurais simples (`es`/`os`/`as`), agrupando por igualdade. A rodada é marcada `offline: true` e o aviso aparece na tela de revelação.
 
 ---
@@ -254,6 +255,8 @@ vercel --prod
 ```
 
 O `vercel.json` manda o framework Vite buildar `apps/web` e roteia `/api/*` para a Function. A Function é **pré-bundlada** (`scripts/build-api.mjs` → `api/index.js`): o esbuild embrulha `@segue/game`, `@segue/shared`, express, supabase-js e dotenv num único arquivo CJS (a pasta `api/` tem `package.json` com `type: commonjs`). Isso evita o problema de imports ESM de pacotes com fonte TypeScript em runtime serverless.
+
+A Function roda na região **`gru1`** (São Paulo, via `vercel.json → regions`), a mesma do projeto Supabase, para minimizar a latência de rede e cold starts.
 
 Passos:
 

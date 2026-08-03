@@ -64,7 +64,8 @@ segue-a-matilha/
 │   └── index.ts                   # fonte da Vercel Function (export default buildApp())
 ├── api/
 │   ├── package.json               # { "type": "commonjs" } — o bundle roda como CJS
-│   └── index.js                   # gerado no build (gitignored) — Function catch-all
+│   └── index.js                   # bundle único gerado por build-api e VERSIONADO no git —
+│                                  # a Vercel detecta a Function a partir do clone do repo
 ├── tsconfig.base.json             # config TS compartilhada
 ├── .env.example                   # variáveis de ambiente (referência)
 ├── supabase/
@@ -255,6 +256,8 @@ vercel --prod
 ```
 
 O `vercel.json` manda o framework Vite buildar `apps/web` e roteia `/api/*` para a Function. A Function é **pré-bundlada** (`scripts/build-api.mjs` → `api/index.js`): o esbuild embrulha `@segue/game`, `@segue/shared`, express, supabase-js e dotenv num único arquivo CJS (a pasta `api/` tem `package.json` com `type: commonjs`). Isso evita o problema de imports ESM de pacotes com fonte TypeScript em runtime serverless.
+
+> ⚠️ **`api/index.js` é versionado no git (não está no `.gitignore`).** Deploys conectados ao Git só enxergam arquivos commitados: a Vercel clona o repo e detecta as Functions do diretório `api/` **antes** de rodar o build command. Se o bundle ficar só no `.gitignore`, a pasta `api/` chega vazia no clone e nenhuma Function é publicada (todos os `/api/*` respondem 404 "The page could not be found"). Por isso, depois de alterar o jogo, rode `npm run build:api` e **commite o bundle atualizado** junto.
 
 A Function roda na região **`gru1`** (São Paulo, via `vercel.json → regions`), a mesma do projeto Supabase, para minimizar a latência de rede e cold starts.
 

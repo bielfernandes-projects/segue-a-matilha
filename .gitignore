@@ -15,5 +15,3 @@ coverage/
 
 .vercel
 supabase/.temp/
-api/index.js
-api/index.cjs

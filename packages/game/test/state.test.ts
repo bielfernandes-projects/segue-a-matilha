@@ -4,6 +4,7 @@ import type { JudgeOutput } from '../src/judge';
 import {
   buildPublicRoom,
   createRoomState,
+  generateRoomCode,
   joinRoomState,
   nextStepState,
   playAgainState,
@@ -30,6 +31,13 @@ const fakeJudge = async (_question: string, answers: string[]): Promise<JudgeOut
 };
 
 describe('game state (serverless puro)', () => {
+  it('gera codigo de sala sempre com 4 letras (sem digitos)', () => {
+    for (let i = 0; i < 100; i++) {
+      const code = generateRoomCode();
+      expect(code).toMatch(/^[A-Z]{4}$/);
+    }
+  });
+
   it('cria sala com host e settings normalizadas', () => {
     const { state, playerId } = createRoomState('Ana', 'husky', { totalRounds: 3 });
     expect(state.phase).toBe('lobby');

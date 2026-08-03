@@ -69,10 +69,20 @@ function makePlayer(id: string, name: string, avatarId: string, isHost: boolean)
     streak: 0,
     bestStreak: 0,
     loneWolfCount: 0,
+    perdidosCount: 0,
     hasAnswered: false,
     absentRounds: 0,
     lastSeenAt: Date.now(),
   };
+}
+
+const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+/** Gera um codigo de sala sempre com 4 LETRAS maiusculas (sem digitos, sem I/O). */
+export function generateRoomCode(): string {
+  return Array.from({ length: LIMITS.ROOM_CODE_LENGTH }, () =>
+    ROOM_CODE_ALPHABET.charAt(Math.floor(Math.random() * ROOM_CODE_ALPHABET.length))
+  ).join('');
 }
 
 export function createRoomState(
@@ -80,10 +90,7 @@ export function createRoomState(
   avatarId: string,
   settings?: Partial<RoomSettings>
 ): { state: GameRoom; playerId: string } {
-  const code =
-    Array.from({ length: LIMITS.ROOM_CODE_LENGTH }, () =>
-      'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'.charAt(Math.floor(Math.random() * 33))
-    ).join('') ?? '';
+  const code = generateRoomCode();
   const playerId = newId('p');
   const now = Date.now();
 

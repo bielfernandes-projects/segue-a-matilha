@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { LIMITS } from '@segue/shared';
 import type { Question, QuestionStatus } from '@segue/shared';
 import { config } from './config';
+import { isDuplicateText } from './questions';
 import { GameError, reapStale } from './state';
 import type { GameRoom } from './state';
 
@@ -124,6 +125,13 @@ export async function getApprovedQuestions(): Promise<Question[]> {
   return (data ?? []).map(toQuestion);
 }
 
+/** True se ja existe pergunta com o mesmo texto normalizado (qualquer status). */
+export async function questionTextExists(text: string): Promise<boolean> {
+  const { data, error } = await getSupabase().from('questions').select('text').limit(2000);
+  if (error) throw error;
+  return isDuplicateText(text, (data ?? []).map((q) => q.text));
+}
+
 export async function insertQuestion(input: {
   text: string;
   status: QuestionStatus;
@@ -188,6 +196,11 @@ export async function readRoom(code: string): Promise<RoomRef | null> {
   if (state.players.length === 0 || (allGone && now - state.updatedAt > LIMITS.ROOM_EXPIRE_MS)) {
     await deleteRoom(code).catch(() => {});
     return null;
+  }
+  for (const p of state.players) {
+    if (p.perdidosCount == null) {
+      p.perdidosCount = p.roundScores.filter((s) => s === LIMITS.POINTS_PERDIDOS).length;
+    }
   }
   return { code, version: data.version, state };
 }

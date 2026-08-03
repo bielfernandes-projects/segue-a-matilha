@@ -18,6 +18,7 @@ import {
   insertQuestion,
   insertRoom,
   listQuestions,
+  questionTextExists,
   readRoom,
   updateQuestionStatus,
   withRoom,
@@ -95,6 +96,10 @@ export function buildApp(): express.Express {
         res.status(400).json({ error: 'A pergunta deve ter entre 5 e 140 caracteres.' });
         return;
       }
+      if (await questionTextExists(text)) {
+        res.status(409).json({ error: 'Essa pergunta já existe no banco de perguntas.' });
+        return;
+      }
       const question = await insertQuestion({
         text,
         status: 'pending',
@@ -129,6 +134,10 @@ export function buildApp(): express.Express {
       const text = String(req.body?.text ?? '').trim();
       if (!text) {
         res.status(400).json({ error: 'Texto da pergunta e obrigatorio.' });
+        return;
+      }
+      if (await questionTextExists(text)) {
+        res.status(409).json({ error: 'Essa pergunta já existe no banco de perguntas.' });
         return;
       }
       const status: QuestionStatus = isQuestionStatus(req.body?.status) ? req.body.status : 'pending';
@@ -181,6 +190,7 @@ export function buildApp(): express.Express {
       let created: { state: GameRoom; playerId: string } | null = null;
       for (let i = 0; i < 6 && !created; i++) {
         const candidate = createRoomState(hostName, avatarId, req.body?.settings as Partial<RoomSettings> | undefined);
+        if (!/^[A-Z]{4}$/.test(candidate.state.code)) continue;
         if (await insertRoom(candidate.state, Date.now())) created = candidate;
       }
       if (!created) throw new GameError('Não foi possível criar a sala. Tente novamente.', 'code_collision');
@@ -202,6 +212,7 @@ export function buildApp(): express.Express {
   app.post('/api/rooms/:code/join', async (req, res) => {
     try {
       const code = String(req.params.code ?? '').trim().toUpperCase();
+      if (!/^[A-Z0-9]{4}$/.test(code)) throw new GameError('Código de sala inválido.', 'bad_input');
       const playerName = String(req.body?.playerName ?? '').trim();
       if (!playerName) throw new GameError('Digite seu nome.', 'bad_input');
       const avatarId = String(req.body?.avatarId ?? 'golden');
@@ -226,6 +237,7 @@ export function buildApp(): express.Express {
   app.post('/api/rooms/:code/rejoin', async (req, res) => {
     try {
       const code = String(req.params.code ?? '').trim().toUpperCase();
+      if (!/^[A-Z0-9]{4}$/.test(code)) throw new GameError('Código de sala inválido.', 'bad_input');
       const playerName = String(req.body?.playerName ?? '').trim();
       if (!playerName) throw new GameError('Digite seu nome.', 'bad_input');
       const avatarId = String(req.body?.avatarId ?? '');

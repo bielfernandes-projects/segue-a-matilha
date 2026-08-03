@@ -21,8 +21,8 @@ Rodada após rodada, todos respondem uma pergunta sem resposta factual; uma IA a
 - **Reveal sem timers no servidor** — cada round guarda um `deadline` absoluto; qualquer client dispara o reveal quando o tempo acaba (o servidor valida o deadline).
 - **Juiz de IA (OpenRouter)** com `temperature: 0`, timeout e **fallback determinístico offline** (rodada marcada como "offline" na tela).
 - **Dois modos de jogo**: Modo A (limite de rodadas) e Modo B (corrida até uma meta de pontos).
-- **Pódio com desempates** e suporte a vitória dividida (co-vencedores). Em empate total (ou com todos os jogadores em 0 pontos), o placar é ordenado **alfabeticamente** (pt-BR) em vez da ordem de entrada.
-- **Banco de perguntas**: ~230 aprovadas no seed, sugestão de usuário (status `pending`) e **painel admin** para curadoria.
+- **Pódio com desempates** (score → menos "Os Perdidos" → menos Lobos → maior streak) e suporte a vitória dividida (co-vencedores). Em empate total (ou com todos os jogadores em 0 pontos), o placar é ordenado **alfabeticamente** (pt-BR) em vez da ordem de entrada.
+- **Banco de perguntas**: ~230 aprovadas no seed, sugestão de usuário (status `pending`, com **dedupe automático** contra textos já existentes no banco) e **painel admin** para curadoria.
 - **PWA instalável** com manifest e service worker.
 - **20 raças de avatares caninos** com cor e bordão próprios, renderizadas em **SVG inline** — visual idêntico em qualquer celular/plataforma (sem emoji, que mudam de aparência entre Android/iOS/Windows).
 - **Mobile-first**: viewport sem zoom por pinça (`maximum-scale=1`) e placar com quebras responsivas para as pontuações nunca ficarem cortadas; erros/toasts aparecem no **topo** da tela.
@@ -44,9 +44,10 @@ Rodada após rodada, todos respondem uma pergunta sem resposta factual; uma IA a
   - Modo B — Corrida de AUmigos: meta de 12 a 40 pontos; checada ao fim de cada rodada (com desempate se vários cruzarem juntos).
 - **Desempate do pódio** (nesta ordem):
   1. Maior pontuação total.
-  2. Menos Lobos Solitários (menos rodadas com 0 pontos).
-  3. Maior sequência consecutiva de rodadas com 2 pontos (streak).
-  4. Empate persistente → vitória dividida (co-vencedores). No placar, empate total (ou todos com 0 pontos) é resolvido em **ordem alfabética** (pt-BR).
+  2. Menos "Os Perdidos" (menos rodadas com 1 ponto).
+  3. Menos Lobos Solitários (menos rodadas com 0 pontos).
+  4. Maior sequência consecutiva de rodadas com 2 pontos (streak).
+  5. Empate persistente → vitória dividida (co-vencedores). No placar, empate total (ou todos com 0 pontos) é resolvido em **ordem alfabética** (pt-BR).
 - **Replay**: "Jogar Novamente" mantém a mesma sala e jogadores, zera pontos, mantém as configurações, reembaralha o pool de perguntas e o Host reinicia. Novos jogadores podem entrar entre partidas.
 
 ---
@@ -209,6 +210,7 @@ npm run dev:web        # http://localhost:5173
 | `npm run dev:web` | Vite dev server (proxy `/api` para o servidor) |
 | `npm run build` | Build do web (`tsc --noEmit && vite build`) e do server (esbuild CJS) |
 | `npm run build:api` | Gera `api/index.js` (bundle único da Vercel Function via esbuild) |
+| `npm run dedupe:questions` | One-off: apaga perguntas `pending` que já existem como `approved` (comparação por texto normalizado) |
 | `npm run start` | Sobe o dev server via `tsx src/index.ts` |
 | `npm run lint` | `tsc --noEmit` em todos os workspaces |
 | `npm run test` | Vitest (`packages/game`) |
@@ -242,10 +244,10 @@ npm run dev:web        # http://localhost:5173
 npm test
 ```
 
-Cobertura atual em `packages/game/test` (Vitest, 19 testes):
+Cobertura atual em `packages/game/test` (Vitest, 23 testes):
 
-- `ranking.test.ts` (12): pontuação 2/1/0, empate no topo, rodada 100% única, streak, lobos solitários e ordem de desempate do pódio.
-- `state.test.ts` (7): criar/entrar/iniciar/submeter/revelar/avançar/play-again, snapshot público (anti-cheat: esconde resposta alheia na fase `question` mas expõe `hasAnswered`) e idempotência do reveal.
+- `ranking.test.ts` (15): pontuação 2/1/0, empate no topo, rodada 100% única, streak, lobos solitários, "Os Perdidos" e a ordem de desempate do pódio.
+- `state.test.ts` (8): criar/entrar/iniciar/submeter/revelar/avançar/play-again, geração de código de sala sempre com 4 letras, snapshot público (anti-cheat: esconde resposta alheia na fase `question` mas expõe `hasAnswered`) e idempotência do reveal.
 
 ---
 

@@ -13,6 +13,7 @@
     "dev:web": "npm run dev --workspace @segue/web",
     "build": "npm run build --workspace @segue/web && npm run build --workspace @segue/server",
     "build:api": "node scripts/build-api.mjs",
+    "dedupe:questions": "tsx scripts/dedupe-questions.ts",
     "start": "npm run start --workspace @segue/server",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

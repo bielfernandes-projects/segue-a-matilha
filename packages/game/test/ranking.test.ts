@@ -13,7 +13,7 @@ function answer(playerId: string, text: string): RevealAnswer {
   return { playerId, playerName: `J${playerId}`, avatarId: 'husky', color: '#fff', text };
 }
 
-function player(id: string, score = 0, loneWolfCount = 0, bestStreak = 0): Player {
+function player(id: string, score = 0, loneWolfCount = 0, bestStreak = 0, perdidosCount = 0): Player {
   return {
     id,
     name: id,
@@ -26,6 +26,7 @@ function player(id: string, score = 0, loneWolfCount = 0, bestStreak = 0): Playe
     streak: 0,
     bestStreak,
     loneWolfCount,
+    perdidosCount,
     hasAnswered: false,
     absentRounds: 0,
   };
@@ -86,6 +87,15 @@ describe('applyRoundScore', () => {
     expect(p.roundScores).toEqual([2, 2, 1, 2]);
   });
 
+  it('perdidos soma perdidosCount', () => {
+    const p = player('a');
+    applyRoundScore(p, LIMITS.POINTS_PERDIDOS);
+    applyRoundScore(p, LIMITS.POINTS_PERDIDOS);
+    applyRoundScore(p, LIMITS.POINTS_LOBO);
+    expect(p.perdidosCount).toBe(2);
+    expect(p.loneWolfCount).toBe(1);
+  });
+
   it('lobo soma loneWolfCount', () => {
     const p = player('a');
     applyRoundScore(p, LIMITS.POINTS_LOBO);
@@ -99,12 +109,20 @@ describe('comparePlayers (desempate do podio)', () => {
     expect(comparePlayers(player('a', 10), player('b', 8))).toBeLessThan(0);
   });
 
-  it('score igual => menos lobos vence', () => {
-    expect(comparePlayers(player('a', 10, 1), player('b', 10, 2))).toBeLessThan(0);
+  it('score igual => menos perdidos vence', () => {
+    expect(comparePlayers(player('a', 10, 0, 0, 1), player('b', 10, 0, 0, 2))).toBeLessThan(0);
   });
 
-  it('score e lobos iguais => maior bestStreak vence', () => {
-    expect(comparePlayers(player('a', 10, 1, 3), player('b', 10, 1, 2))).toBeLessThan(0);
+  it('perdidos pesa antes de lobos (menos perdidos vence mesmo com mais lobos)', () => {
+    expect(comparePlayers(player('a', 10, 5, 0, 1), player('b', 10, 0, 0, 2))).toBeLessThan(0);
+  });
+
+  it('score e perdidos iguais => menos lobos vence', () => {
+    expect(comparePlayers(player('a', 10, 1, 0, 1), player('b', 10, 2, 0, 1))).toBeLessThan(0);
+  });
+
+  it('score, perdidos e lobos iguais => maior bestStreak vence', () => {
+    expect(comparePlayers(player('a', 10, 1, 3, 1), player('b', 10, 1, 2, 1))).toBeLessThan(0);
   });
 });
 

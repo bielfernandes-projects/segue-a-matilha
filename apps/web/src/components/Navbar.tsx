@@ -34,9 +34,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div>
             <h1 className="font-black text-xl sm:text-2xl uppercase tracking-tighter italic text-[#FEFAE0] leading-none flex items-center gap-2">
               Segue a Matilha
-              <span className="text-[10px] not-italic px-2 py-0.5 rounded-full bg-[#606C38]/40 text-[#DDA15E] border border-[#606C38]">
-                PWA
-              </span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.2em] text-[#A3A3A3] font-semibold mt-0.5">
               O Party Game da Maioria

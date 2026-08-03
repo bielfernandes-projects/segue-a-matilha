@@ -36736,6 +36736,9 @@ function applyRoundScore(player, points) {
   if (points === LIMITS.POINTS_LOBO) {
     player.loneWolfCount += 1;
   }
+  if (points === LIMITS.POINTS_PERDIDOS) {
+    player.perdidosCount += 1;
+  }
 }
 function isGameOver(room) {
   if (room.settings.mode === "rounds") {
@@ -44673,6 +44676,25 @@ function fallbackGroup(answers) {
   return [...groups.values()];
 }
 
+// packages/game/src/questions.ts
+function questionKey(text) {
+  return singularize(normalizeForMatch(text));
+}
+function isDuplicateText(text, existing) {
+  const key = questionKey(text);
+  return existing.some((t) => questionKey(t) === key);
+}
+function pickQuestion(pool, used) {
+  const available = pool.filter((q) => !used.has(q.id));
+  const source = available.length > 0 ? available : pool;
+  if (source.length === 0) {
+    throw new Error("Nenhuma pergunta aprovada disponivel.");
+  }
+  const picked = source[Math.floor(Math.random() * source.length)];
+  used.add(picked.id);
+  return picked;
+}
+
 // packages/game/src/judge.ts
 function buildPrompt(question, answers) {
   return `Voc\xEA \xE9 o juiz imparcial e divertido do jogo de festa "Segue a Matilha".
@@ -44750,18 +44772,6 @@ async function groupAnswers(question, answers) {
   }
 }
 
-// packages/game/src/questions.ts
-function pickQuestion(pool, used) {
-  const available = pool.filter((q) => !used.has(q.id));
-  const source = available.length > 0 ? available : pool;
-  if (source.length === 0) {
-    throw new Error("Nenhuma pergunta aprovada disponivel.");
-  }
-  const picked = source[Math.floor(Math.random() * source.length)];
-  used.add(picked.id);
-  return picked;
-}
-
 // packages/game/src/state.ts
 var GameError = class extends Error {
   code;
@@ -44806,16 +44816,21 @@ function makePlayer(id, name, avatarId, isHost) {
     streak: 0,
     bestStreak: 0,
     loneWolfCount: 0,
+    perdidosCount: 0,
     hasAnswered: false,
     absentRounds: 0,
     lastSeenAt: Date.now()
   };
 }
-function createRoomState(hostName, avatarId, settings) {
-  const code = Array.from(
+var ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+function generateRoomCode() {
+  return Array.from(
     { length: LIMITS.ROOM_CODE_LENGTH },
-    () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".charAt(Math.floor(Math.random() * 33))
-  ).join("") ?? "";
+    () => ROOM_CODE_ALPHABET.charAt(Math.floor(Math.random() * ROOM_CODE_ALPHABET.length))
+  ).join("");
+}
+function createRoomState(hostName, avatarId, settings) {
+  const code = generateRoomCode();
   const playerId = newId("p");
   const now = Date.now();
   const state = {
@@ -45163,6 +45178,11 @@ async function getApprovedQuestions() {
   if (error) throw error;
   return (data ?? []).map(toQuestion);
 }
+async function questionTextExists(text) {
+  const { data, error } = await getSupabase().from("questions").select("text").limit(2e3);
+  if (error) throw error;
+  return isDuplicateText(text, (data ?? []).map((q) => q.text));
+}
 async function insertQuestion(input) {
   const id = `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const row = {
@@ -45208,6 +45228,11 @@ async function readRoom(code) {
     await deleteRoom(code).catch(() => {
     });
     return null;
+  }
+  for (const p of state.players) {
+    if (p.perdidosCount == null) {
+      p.perdidosCount = p.roundScores.filter((s) => s === LIMITS.POINTS_PERDIDOS).length;
+    }
   }
   return { code, version: data.version, state };
 }
@@ -45336,6 +45361,10 @@ function buildApp() {
         res.status(400).json({ error: "A pergunta deve ter entre 5 e 140 caracteres." });
         return;
       }
+      if (await questionTextExists(text)) {
+        res.status(409).json({ error: "Essa pergunta j\xE1 existe no banco de perguntas." });
+        return;
+      }
       const question = await insertQuestion({
         text,
         status: "pending",
@@ -45367,6 +45396,10 @@ function buildApp() {
       const text = String(req.body?.text ?? "").trim();
       if (!text) {
         res.status(400).json({ error: "Texto da pergunta e obrigatorio." });
+        return;
+      }
+      if (await questionTextExists(text)) {
+        res.status(409).json({ error: "Essa pergunta j\xE1 existe no banco de perguntas." });
         return;
       }
       const status = isQuestionStatus(req.body?.status) ? req.body.status : "pending";
@@ -45410,6 +45443,7 @@ function buildApp() {
       let created = null;
       for (let i = 0; i < 6 && !created; i++) {
         const candidate = createRoomState(hostName, avatarId, req.body?.settings);
+        if (!/^[A-Z]{4}$/.test(candidate.state.code)) continue;
         if (await insertRoom(candidate.state, Date.now())) created = candidate;
       }
       if (!created) throw new GameError("N\xE3o foi poss\xEDvel criar a sala. Tente novamente.", "code_collision");
@@ -45429,6 +45463,7 @@ function buildApp() {
   app.post("/api/rooms/:code/join", async (req, res) => {
     try {
       const code = String(req.params.code ?? "").trim().toUpperCase();
+      if (!/^[A-Z0-9]{4}$/.test(code)) throw new GameError("C\xF3digo de sala inv\xE1lido.", "bad_input");
       const playerName = String(req.body?.playerName ?? "").trim();
       if (!playerName) throw new GameError("Digite seu nome.", "bad_input");
       const avatarId = String(req.body?.avatarId ?? "golden");
@@ -45450,6 +45485,7 @@ function buildApp() {
   app.post("/api/rooms/:code/rejoin", async (req, res) => {
     try {
       const code = String(req.params.code ?? "").trim().toUpperCase();
+      if (!/^[A-Z0-9]{4}$/.test(code)) throw new GameError("C\xF3digo de sala inv\xE1lido.", "bad_input");
       const playerName = String(req.body?.playerName ?? "").trim();
       if (!playerName) throw new GameError("Digite seu nome.", "bad_input");
       const avatarId = String(req.body?.avatarId ?? "");

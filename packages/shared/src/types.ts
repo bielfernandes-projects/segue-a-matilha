@@ -33,6 +33,7 @@ export interface Player {
   streak: number;
   bestStreak: number;
   loneWolfCount: number;
+  perdidosCount: number;
 
   hasAnswered: boolean;
   currentAnswer?: string;

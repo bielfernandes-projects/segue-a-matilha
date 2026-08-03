@@ -46,17 +46,23 @@ export function applyRoundScore(player: Player, points: number): void {
   if (points === LIMITS.POINTS_LOBO) {
     player.loneWolfCount += 1;
   }
+
+  if (points === LIMITS.POINTS_PERDIDOS) {
+    player.perdidosCount += 1;
+  }
 }
 
 /**
  * Ordem de desempate do podio:
  * 1. Maior pontuacao total
- * 2. Menos Lobos Solitarios (rodadas de 0 pontos)
- * 3. Maior sequencia consecutiva de rodadas com 2 pontos (streak)
- * 4. Empate total (inclui todos com 0 pontos) => ordem alfabetica (pt-BR)
+ * 2. Menos "Os Perdidos" (rodadas de 1 ponto)
+ * 3. Menos Lobos Solitarios (rodadas de 0 pontos)
+ * 4. Maior sequencia consecutiva de rodadas com 2 pontos (streak)
+ * 5. Empate total (inclui todos com 0 pontos) => ordem alfabetica (pt-BR)
  */
 export function comparePlayers(a: Player, b: Player): number {
   if (b.score !== a.score) return b.score - a.score;
+  if ((a.perdidosCount ?? 0) !== (b.perdidosCount ?? 0)) return (a.perdidosCount ?? 0) - (b.perdidosCount ?? 0);
   if (a.loneWolfCount !== b.loneWolfCount) return a.loneWolfCount - b.loneWolfCount;
   if (b.bestStreak !== a.bestStreak) return b.bestStreak - a.bestStreak;
   return a.name.localeCompare(b.name, 'pt-BR');
@@ -69,6 +75,7 @@ export function sortPlayers(players: Player[]): Player[] {
 export function isTiedForRank(a: Player, b: Player): boolean {
   return (
     a.score === b.score &&
+    (a.perdidosCount ?? 0) === (b.perdidosCount ?? 0) &&
     a.loneWolfCount === b.loneWolfCount &&
     a.bestStreak === b.bestStreak
   );

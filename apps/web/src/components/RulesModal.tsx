@@ -1,11 +1,14 @@
 import React from 'react';
-import { X, HelpCircle, Award, Dog } from 'lucide-react';
+import { X, HelpCircle, Award, Dog, Brain, ListOrdered } from 'lucide-react';
+import { SCORING_RULES, TIEBREAKER_RULES, GAME_CONCEPT, AI_CURATION } from '@segue/shared';
 
 interface RulesModalProps {
   onClose: () => void;
 }
 
 export const RulesModal: React.FC<RulesModalProps> = ({ onClose }) => {
+  const scoringEntries = Object.entries(SCORING_RULES) as [keyof typeof SCORING_RULES, typeof SCORING_RULES[keyof typeof SCORING_RULES]][];
+
   return (
     <div className="fixed inset-0 z-50 bg-[#05070A]/85 backdrop-blur-md flex items-center justify-center p-4">
       <div className="relative w-full max-w-xl bg-[#0A0E14] border-2 border-[#2D3139] rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -27,12 +30,10 @@ export const RulesModal: React.FC<RulesModalProps> = ({ onClose }) => {
         <div className="bg-[#11161D] border-2 border-[#606C38] rounded-xl p-4 space-y-2">
           <h3 className="text-xs font-bold text-[#606C38] uppercase tracking-widest flex items-center gap-2">
             <Dog className="w-4 h-4 text-[#DDA15E]" />
-            <span>Conceito Principal</span>
+            <span>{GAME_CONCEPT.title}</span>
           </h3>
           <p className="text-xs text-[#FEFAE0] font-medium leading-relaxed">
-            Neste jogo, as perguntas não possuem resposta factual correta! O seu objetivo é adivinhar e escrever a
-            resposta que a <strong className="text-[#DDA15E] font-bold uppercase">MAIORIA dos outros jogadores</strong>{' '}
-            irá digitar.
+            {GAME_CONCEPT.description}
           </p>
         </div>
 
@@ -43,75 +44,43 @@ export const RulesModal: React.FC<RulesModalProps> = ({ onClose }) => {
           </h3>
 
           <div className="space-y-2">
-            <div className="p-3.5 rounded-xl bg-[#11161D] border-2 border-[#DDA15E] flex items-start gap-3">
-              <span className="text-2xl shrink-0">🏆</span>
-              <div>
-                <span className="text-xs font-black text-[#DDA15E] uppercase tracking-wider block">
-                  A Matilha (A Maioria) — 2 Pontos
-                </span>
-                <p className="text-[11px] text-[#A3A3A3] font-medium">
-                  Jogadores que deram a resposta mais popular da rodada recebem 2 Fichas. Em caso de empate na resposta
-                  mais popular, todos os empatados no topo ganham 2 pontos!
-                </p>
+            {scoringEntries.map(([key, rule]) => (
+              <div key={key} className="p-3.5 rounded-xl bg-[#11161D] border-2 flex items-start gap-3" style={{ borderColor: rule.color }}>
+                <span className="text-2xl shrink-0">{rule.icon}</span>
+                <div>
+                  <span className="text-xs font-black uppercase tracking-wider block" style={{ color: rule.color }}>
+                    {rule.name} — {rule.points} {rule.points === 1 ? 'Ponto' : 'Pontos'}
+                  </span>
+                  <p className="text-[11px] text-[#A3A3A3] font-medium mt-1">
+                    {rule.description}
+                  </p>
+                </div>
               </div>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-[#11161D] border-2 border-[#606C38] flex items-start gap-3">
-              <span className="text-2xl shrink-0">🐾</span>
-              <div>
-                <span className="text-xs font-black text-[#606C38] uppercase tracking-wider block">
-                  Os Perdidos (A Minoria com Match) — 1 Ponto
-                </span>
-                <p className="text-[11px] text-[#A3A3A3] font-medium">
-                  Jogadores que deram uma resposta igual a pelo menos 1 outro AUmigo, mas que não foi a resposta
-                  campeã/maioria da rodada, ganham 1 Ficha.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-[#11161D] border border-[#2D3139] flex items-start gap-3">
-              <span className="text-2xl shrink-0">🐺</span>
-              <div>
-                <span className="text-xs font-black text-rose-400 uppercase tracking-wider block">
-                  O Lobo Solitário (Resposta Única) — 0 Pontos
-                </span>
-                <p className="text-[11px] text-[#A3A3A3] font-medium">
-                  Jogadores que deram uma resposta que absolutamente ninguém mais deu na rodada ficam isolados e recebem
-                  0 Fichas.
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
         <div className="space-y-2 pt-2 border-t border-[#2D3139]">
-          <h3 className="text-[10px] font-bold text-[#606C38] uppercase tracking-widest">
-            Inteligência Artificial (Curadoria Semântica)
+          <h3 className="text-[10px] font-bold text-[#606C38] uppercase tracking-widest flex items-center gap-2">
+            <Brain className="w-3.5 h-3.5 text-[#DDA15E]" />
+            <span>{AI_CURATION.title}</span>
           </h3>
           <p className="text-xs text-[#A3A3A3] leading-relaxed font-medium">
-            Não se preocupe com erros de digitação ou sinônimos! O sistema usa Inteligência Artificial para agrupar
-            automaticamente respostas com o mesmo sentido (ex: "coxinha de frango", "coxinha", "Coxinha!" contam juntas
-            para a matilha).
+            {AI_CURATION.description}
           </p>
         </div>
 
         <div className="space-y-2 pt-2 border-t border-[#2D3139]">
-          <h3 className="text-[10px] font-bold text-[#606C38] uppercase tracking-widest">
-            Critérios de Desempate (Pódio Final)
+          <h3 className="text-[10px] font-bold text-[#606C38] uppercase tracking-widest flex items-center gap-2">
+            <ListOrdered className="w-3.5 h-3.5 text-[#DDA15E]" />
+            <span>Critérios de Desempate (Pódio Final)</span>
           </h3>
           <ol className="text-xs text-[#FEFAE0] space-y-1.5 list-decimal list-inside font-medium">
-            <li>
-              <strong>Maior Pontuação Total:</strong> Maior soma de Fichas ao fim da partida.
-            </li>
-            <li>
-              <strong>Menos Lobos Solitários:</strong> Menor número de respostas únicas (rodadas de 0 pontos).
-            </li>
-            <li>
-              <strong>Maior Sequência (Streak):</strong> Mais rodadas consecutivas acertando a Matilha.
-            </li>
-            <li>
-              <strong>Empate Total:</strong> Vencedores compartilham o pódio (co-vencedores).
-            </li>
+            {TIEBREAKER_RULES.map((rule) => (
+              <li key={rule.order}>
+                <strong>{rule.name}:</strong> {rule.description}
+              </li>
+            ))}
           </ol>
         </div>
 

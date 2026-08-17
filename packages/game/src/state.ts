@@ -13,7 +13,7 @@ import type {
 import { applyRoundScore, isGameOver, scoreClusters } from '@segue/shared';
 import { groupAnswers } from './judge';
 import type { JudgeFn } from './judge';
-import { pickQuestion } from './questions';
+import { pickQuestion, questionKey } from './questions';
 
 export class GameError extends Error {
   code: string;
@@ -27,6 +27,7 @@ export class GameError extends Error {
 export interface GameRoom extends Room {
   prevPhase?: Phase;
   usedQuestionIds: string[];
+  recentlyUsedQuestionIds: string[];
 }
 
 const HISTORY_LIMIT = 10;
@@ -106,6 +107,7 @@ export function createRoomState(
     createdAt: now,
     updatedAt: now,
     usedQuestionIds: [],
+    recentlyUsedQuestionIds: [],
   };
 
   return { state, playerId };
@@ -144,7 +146,8 @@ export function startGameState(state: GameRoom, playerId: string, pool: Question
 
 function beginRoundState(state: GameRoom, pool: Question[]): void {
   const used = new Set(state.usedQuestionIds);
-  state.question = pickQuestion(pool, used);
+  const recent = new Set(state.recentlyUsedQuestionIds);
+  state.question = pickQuestion(pool, used, recent);
   state.usedQuestionIds = [...used];
   state.deadline = Date.now() + state.settings.timeLimitSeconds * 1000;
   state.answeredCount = 0;
@@ -214,9 +217,10 @@ export async function processRevealState(
 
   const judged = await judge(state.question?.text ?? '', answers.map((a) => a.text));
 
+  // Pool indexado por questionKey (normalizado: lowercase + sem acentos + sem pontuação + singular)
   const pool = new Map<string, RevealAnswer[]>();
   for (const a of answers) {
-    const key = a.text.trim().toLowerCase();
+    const key = questionKey(a.text);
     if (!pool.has(key)) pool.set(key, []);
     pool.get(key)!.push(a);
   }
@@ -225,7 +229,7 @@ export async function processRevealState(
   for (const cluster of judged.clusters) {
     const respostas: RevealAnswer[] = [];
     for (const text of cluster.respostas) {
-      const key = text.trim().toLowerCase();
+      const key = questionKey(text);
       const entry = pool.get(key);
       if (entry && entry.length > 0) {
         respostas.push(entry.shift() as RevealAnswer);
@@ -319,6 +323,13 @@ export function playAgainState(state: GameRoom, playerId: string): void {
   if (state.hostId !== playerId) throw new GameError('Apenas o Host pode reiniciar.', 'forbidden');
   if (state.phase !== 'finished') throw new GameError('A partida ainda não terminou.', 'bad_phase');
 
+  // Move usedQuestionIds para recentlyUsedQuestionIds (mantém histórico cross-game, máx 15)
+  const RECENT_LIMIT = 15;
+  state.recentlyUsedQuestionIds = [
+    ...state.usedQuestionIds,
+    ...state.recentlyUsedQuestionIds,
+  ].slice(0, RECENT_LIMIT);
+
   state.phase = 'lobby';
   state.currentRound = 0;
   state.roundHistory = [];
@@ -333,6 +344,7 @@ export function playAgainState(state: GameRoom, playerId: string): void {
     p.streak = 0;
     p.bestStreak = 0;
     p.loneWolfCount = 0;
+    p.perdidosCount = 0;
     p.hasAnswered = false;
     p.currentAnswer = undefined;
     p.absentRounds = 0;

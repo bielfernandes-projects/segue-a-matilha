@@ -90,4 +90,6 @@ export interface Room {
   createdAt: number;
   updatedAt: number;
   pausedReason?: string;
+  usedQuestionIds: string[];
+  recentlyUsedQuestionIds: string[];
 }

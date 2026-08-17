@@ -22,7 +22,7 @@ Rodada após rodada, todos respondem uma pergunta sem resposta factual; uma IA a
 - **Juiz de IA (OpenRouter)** com `temperature: 0`, timeout e **fallback determinístico offline** (rodada marcada como "offline" na tela).
 - **Dois modos de jogo**: Modo A (limite de rodadas) e Modo B (corrida até uma meta de pontos).
 - **Pódio com desempates** (score → menos "Os Perdidos" → menos Lobos → maior streak) e suporte a vitória dividida (co-vencedores). Em empate total (ou com todos os jogadores em 0 pontos), o placar é ordenado **alfabeticamente** (pt-BR) em vez da ordem de entrada.
-- **Banco de perguntas**: ~230 aprovadas no seed, sugestão de usuário (status `pending`, com **dedupe automático** contra textos já existentes no banco) e **painel admin** para curadoria.
+- **Banco de perguntas**: ~230 aprovadas no seed, sugestão de usuário (status `pending`, com **dedupe automático** contra textos já existentes no banco) e **painel admin** para curadoria (filtro de busca nas aprovadas + pendentes que não duplicam aprovadas).
 - **PWA instalável** com manifest e service worker.
 - **20 raças de avatares caninos** com cor e bordão próprios, renderizadas em **SVG inline** — visual idêntico em qualquer celular/plataforma (sem emoji, que mudam de aparência entre Android/iOS/Windows).
 - **Mobile-first**: viewport sem zoom por pinça (`maximum-scale=1`) e placar com quebras responsivas para as pontuações nunca ficarem cortadas; erros/toasts aparecem no **topo** da tela.
@@ -282,3 +282,15 @@ Passos:
 - i18n (EN/ES).
 - Avatares personalizados (upload de imagem).
 - Endereços de sala duráveis (a sala expira após inatividade total — `ROOM_EXPIRE_MS`).
+
+---
+
+## 🔧 Changelog Recente (v2.1)
+
+**Bug fixes & melhorias:**
+
+- **RulesModal dinâmico** — regras agora vêm de `@segue/shared/rules.ts` (pontuação, desempates, conceito, IA). Eliminado hardcode; alterações no backend refletem automaticamente no modal.
+- **Painel admin: busca nas aprovadas** — barra de pesquisa por texto, categoria ou autor na aba "Aprovadas".
+- **Pendentes sem duplicatas** — `listQuestions('pending')` filtra server-side qualquer pergunta cujo `questionKey()` (texto normalizado) já exista como `approved`. Mesma pergunta não aparece nas duas abas.
+- **Correção no judge (IA)** — `processRevealState` usa `questionKey()` para indexar pool e matchar clusters da IA, resolvendo o bug onde o 4º jogador com resposta idêntica ("tomate") ficava como Lobo Solitário.
+- **Aleatoriedade de perguntas cross-game** — `playAgainState` mantém `recentlyUsedQuestionIds` (últimas 15); `pickQuestion` evita repetir perguntas recentes entre partidas na mesma sala.

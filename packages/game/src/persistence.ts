@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { LIMITS } from '@segue/shared';
 import type { Question, QuestionStatus } from '@segue/shared';
 import { config } from './config';
-import { isDuplicateText } from './questions';
+import { isDuplicateText, questionKey } from './questions';
 import { GameError, reapStale } from './state';
 import type { GameRoom } from './state';
 
@@ -111,7 +111,20 @@ export async function listQuestions(status?: QuestionStatus): Promise<Question[]
   if (status) query = query.eq('status', status);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).map(toQuestion);
+  const questions = (data ?? []).map(toQuestion);
+
+  // Se status === 'pending', filtrar perguntas que já existem como aprovadas (usando questionKey normalizado)
+  if (status === 'pending') {
+    const { data: approvedData } = await getSupabase()
+      .from('questions')
+      .select('text')
+      .eq('status', 'approved')
+      .limit(2000);
+    const approvedKeys = new Set((approvedData ?? []).map((q) => questionKey(q.text)));
+    return questions.filter((q) => !approvedKeys.has(questionKey(q.text)));
+  }
+
+  return questions;
 }
 
 export async function getApprovedQuestions(): Promise<Question[]> {

@@ -12,10 +12,11 @@ export function isDuplicateText(text: string, existing: string[]): boolean {
   return existing.some((t) => questionKey(t) === key);
 }
 
-/** Sorteia uma pergunta que ainda nao apareceu nesta partida. */
-export function pickQuestion(pool: Question[], used: Set<string>): Question {
-  const available = pool.filter((q) => !used.has(q.id));
-  const source = available.length > 0 ? available : pool;
+/** Sorteia uma pergunta que ainda nao apareceu nesta partida nem nos jogos recentes. */
+export function pickQuestion(pool: Question[], used: Set<string>, recentlyUsed: Set<string>): Question {
+  const exclude = new Set([...used, ...recentlyUsed]);
+  const available = pool.filter((q) => !exclude.has(q.id));
+  const source = available.length > 0 ? available : pool.filter((q) => !used.has(q.id));
   if (source.length === 0) {
     throw new Error('Nenhuma pergunta aprovada disponivel.');
   }

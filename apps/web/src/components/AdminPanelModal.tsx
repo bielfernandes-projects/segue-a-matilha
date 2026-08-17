@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Shield, Check, Trash2, Plus, RefreshCw, Key } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Shield, Check, Trash2, Plus, RefreshCw, Key, Search } from 'lucide-react';
 import type { Question, QuestionStatus } from '@segue/shared';
 
 interface AdminPanelModalProps {
@@ -17,6 +17,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
   const [error, setError] = useState('');
   const [newQuestionText, setNewQuestionText] = useState('');
   const [newCategory, setNewCategory] = useState('Geral');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const token = passkey.trim();
 
@@ -88,6 +89,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
       });
       if (res.ok) {
         setNewQuestionText('');
+        setSearchQuery('');
         setActiveTab('aprovada');
       } else {
         setError('Falha ao adicionar pergunta.');
@@ -96,6 +98,16 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
       setError('Erro de conexão.');
     }
   };
+
+  const filteredQuestions = useMemo(() => {
+    if (activeTab !== 'aprovada' || !searchQuery.trim()) return questions;
+    const query = searchQuery.trim().toLowerCase();
+    return questions.filter((q) =>
+      q.text.toLowerCase().includes(query) ||
+      (q.category?.toLowerCase().includes(query)) ||
+      (q.author?.toLowerCase().includes(query))
+    );
+  }, [questions, activeTab, searchQuery]);
 
   return (
     <div className="fixed inset-0 z-50 bg-[#05070A]/85 backdrop-blur-md flex items-center justify-center p-4">
@@ -215,16 +227,28 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
               </form>
             ) : (
               <div className="max-h-80 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">
+                {activeTab === 'aprovada' && (
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#2D3139]" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Pesquisar por texto, categoria ou autor..."
+                      className="w-full bg-[#11161D] border border-[#2D3139] focus:border-[#DDA15E] pl-10 pr-4 py-2 text-[#FEFAE0] placeholder:text-[#2D3139] text-sm font-medium outline-none rounded-xl"
+                    />
+                  </div>
+                )}
                 {loading ? (
                   <p className="text-center text-xs text-[#A3A3A3] py-4 flex items-center justify-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Carregando perguntas...
                   </p>
-                ) : questions.length === 0 ? (
+                ) : filteredQuestions.length === 0 ? (
                   <p className="text-center text-xs text-[#A3A3A3] py-4">
                     Nenhuma pergunta com status "{activeTab}".
                   </p>
                 ) : (
-                  questions.map((q) => (
+                  filteredQuestions.map((q) => (
                     <div
                       key={q.id}
                       className="flex items-center justify-between p-3.5 rounded-xl bg-[#11161D] border border-[#2D3139] text-xs"

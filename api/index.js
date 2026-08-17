@@ -36778,6 +36778,34 @@ function getAvatarColor(id) {
   return getAvatarById(id).color;
 }
 
+// packages/shared/src/rules.ts
+var SCORING_RULES = {
+  matilha: {
+    name: "A Matilha (A Maioria)",
+    points: LIMITS.POINTS_MATILHA,
+    icon: "\u{1F3C6}",
+    description: "Jogadores que deram a resposta mais popular da rodada recebem 2 Fichas. Em caso de empate na resposta mais popular, todos os empatados no topo ganham 2 pontos!",
+    color: "#DDA15E",
+    groupType: "matilha"
+  },
+  perdidos: {
+    name: "Os Perdidos (A Minoria com Match)",
+    points: LIMITS.POINTS_PERDIDOS,
+    icon: "\u{1F43E}",
+    description: "Jogadores que deram uma resposta igual a pelo menos 1 outro AUmigo, mas que n\xE3o foi a resposta campe\xE3/maioria da rodada, ganham 1 Ficha.",
+    color: "#606C38",
+    groupType: "perdidos"
+  },
+  lobo: {
+    name: "O Lobo Solit\xE1rio (Resposta \xDAnica)",
+    points: LIMITS.POINTS_LOBO,
+    icon: "\u{1F43A}",
+    description: "Jogadores que deram uma resposta que absolutamente ningu\xE9m mais deu na rodada ficam isolados e recebem 0 Fichas.",
+    color: "rose-400",
+    groupType: "lobo"
+  }
+};
+
 // node_modules/@supabase/supabase-js/dist/index.mjs
 var dist_exports = {};
 __export(dist_exports, {
@@ -44684,9 +44712,10 @@ function isDuplicateText(text, existing) {
   const key = questionKey(text);
   return existing.some((t) => questionKey(t) === key);
 }
-function pickQuestion(pool, used) {
-  const available = pool.filter((q) => !used.has(q.id));
-  const source = available.length > 0 ? available : pool;
+function pickQuestion(pool, used, recentlyUsed) {
+  const exclude = /* @__PURE__ */ new Set([...used, ...recentlyUsed]);
+  const available = pool.filter((q) => !exclude.has(q.id));
+  const source = available.length > 0 ? available : pool.filter((q) => !used.has(q.id));
   if (source.length === 0) {
     throw new Error("Nenhuma pergunta aprovada disponivel.");
   }
@@ -44844,7 +44873,8 @@ function createRoomState(hostName, avatarId, settings) {
     roundHistory: [],
     createdAt: now,
     updatedAt: now,
-    usedQuestionIds: []
+    usedQuestionIds: [],
+    recentlyUsedQuestionIds: []
   };
   return { state, playerId };
 }
@@ -44878,7 +44908,8 @@ function startGameState(state, playerId, pool) {
 }
 function beginRoundState(state, pool) {
   const used = new Set(state.usedQuestionIds);
-  state.question = pickQuestion(pool, used);
+  const recent = new Set(state.recentlyUsedQuestionIds);
+  state.question = pickQuestion(pool, used, recent);
   state.usedQuestionIds = [...used];
   state.deadline = Date.now() + state.settings.timeLimitSeconds * 1e3;
   state.answeredCount = 0;
@@ -44931,7 +44962,7 @@ async function processRevealState(state, judge = groupAnswers) {
   const judged = await judge(state.question?.text ?? "", answers.map((a) => a.text));
   const pool = /* @__PURE__ */ new Map();
   for (const a of answers) {
-    const key = a.text.trim().toLowerCase();
+    const key = questionKey(a.text);
     if (!pool.has(key)) pool.set(key, []);
     pool.get(key).push(a);
   }
@@ -44939,7 +44970,7 @@ async function processRevealState(state, judge = groupAnswers) {
   for (const cluster of judged.clusters) {
     const respostas = [];
     for (const text of cluster.respostas) {
-      const key = text.trim().toLowerCase();
+      const key = questionKey(text);
       const entry = pool.get(key);
       if (entry && entry.length > 0) {
         respostas.push(entry.shift());
@@ -45013,6 +45044,11 @@ function nextStepState(state, playerId, pool) {
 function playAgainState(state, playerId) {
   if (state.hostId !== playerId) throw new GameError("Apenas o Host pode reiniciar.", "forbidden");
   if (state.phase !== "finished") throw new GameError("A partida ainda n\xE3o terminou.", "bad_phase");
+  const RECENT_LIMIT = 15;
+  state.recentlyUsedQuestionIds = [
+    ...state.usedQuestionIds,
+    ...state.recentlyUsedQuestionIds
+  ].slice(0, RECENT_LIMIT);
   state.phase = "lobby";
   state.currentRound = 0;
   state.roundHistory = [];
@@ -45027,6 +45063,7 @@ function playAgainState(state, playerId) {
     p.streak = 0;
     p.bestStreak = 0;
     p.loneWolfCount = 0;
+    p.perdidosCount = 0;
     p.hasAnswered = false;
     p.currentAnswer = void 0;
     p.absentRounds = 0;
@@ -45171,7 +45208,13 @@ async function listQuestions(status) {
   if (status) query = query.eq("status", status);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).map(toQuestion);
+  const questions = (data ?? []).map(toQuestion);
+  if (status === "pending") {
+    const { data: approvedData } = await getSupabase().from("questions").select("text").eq("status", "approved").limit(2e3);
+    const approvedKeys = new Set((approvedData ?? []).map((q) => questionKey(q.text)));
+    return questions.filter((q) => !approvedKeys.has(questionKey(q.text)));
+  }
+  return questions;
 }
 async function getApprovedQuestions() {
   const { data, error } = await getSupabase().from("questions").select("*").eq("status", "approved").order("created_at", { ascending: false }).limit(1e3);

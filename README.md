@@ -294,3 +294,5 @@ Passos:
 - **Pendentes sem duplicatas** — `listQuestions('pending')` filtra server-side qualquer pergunta cujo `questionKey()` (texto normalizado) já exista como `approved`. Mesma pergunta não aparece nas duas abas.
 - **Correção no judge (IA)** — `processRevealState` usa `questionKey()` para indexar pool e matchar clusters da IA, resolvendo o bug onde o 4º jogador com resposta idêntica ("tomate") ficava como Lobo Solitário.
 - **Aleatoriedade de perguntas cross-game** — `playAgainState` mantém `recentlyUsedQuestionIds` (últimas 15); `pickQuestion` evita repetir perguntas recentes entre partidas na mesma sala.
+   
+ 

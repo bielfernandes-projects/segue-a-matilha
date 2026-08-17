@@ -33,6 +33,12 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
     setIsAuthenticated(true);
   };
 
+  const tabToStatus = (tab: Tab): QuestionStatus | undefined => {
+    if (tab === 'pendente') return 'pending';
+    if (tab === 'aprovada') return 'approved';
+    return undefined;
+  };
+
   const fetchQuestions = async (status?: QuestionStatus) => {
     setLoading(true);
     try {
@@ -53,7 +59,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
 
   useEffect(() => {
     if (isAuthenticated) {
-      void fetchQuestions(activeTab === 'add' ? undefined : (activeTab as QuestionStatus));
+      void fetchQuestions(tabToStatus(activeTab));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isAuthenticated]);

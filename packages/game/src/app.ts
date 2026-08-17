@@ -121,9 +121,11 @@ export function buildApp(): express.Express {
     next();
   });
 
-  admin.get('/questions', async (_req, res) => {
+  admin.get('/questions', async (req, res) => {
     try {
-      res.json(await listQuestions());
+      const status = req.query?.status as string | undefined;
+      const validStatus = status === 'approved' || status === 'pending' || status === 'rejected' ? status : undefined;
+      res.json(await listQuestions(validStatus));
     } catch (e) {
       err(res, e);
     }

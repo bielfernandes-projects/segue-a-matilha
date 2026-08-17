@@ -45427,9 +45427,11 @@ function buildApp() {
     }
     next();
   });
-  admin.get("/questions", async (_req, res) => {
+  admin.get("/questions", async (req, res) => {
     try {
-      res.json(await listQuestions());
+      const status = req.query?.status;
+      const validStatus = status === "approved" || status === "pending" || status === "rejected" ? status : void 0;
+      res.json(await listQuestions(validStatus));
     } catch (e) {
       err(res, e);
     }

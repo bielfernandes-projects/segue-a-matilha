@@ -1,102 +1,51 @@
-import { createClient } from '@supabase/supabase-js';
-import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
-import { SERVER_EVENTS } from '@segue/shared';
 import type { Room } from '@segue/shared';
 import { useGameStore } from '../store';
 import { apiRequest } from './api';
 import type { RoomResponse } from './api';
+import { RealtimeAdapter } from './realtime-adapter';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+let adapter: RealtimeAdapter | null = null;
 
-const FALLBACK_SYNC_INTERVAL_MS = 4000;
-
-let client: SupabaseClient | null = null;
-let channel: RealtimeChannel | null = null;
-let fallbackTimer: number | null = null;
-
-export function getRealtimeClient(): SupabaseClient | null {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
-  if (!client) {
-    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: false },
-      realtime: { params: { eventsPerSecond: 10 } },
-    });
-  }
-  return client;
-}
-
-function clearFallbackSync(): void {
-  if (fallbackTimer != null) {
-    window.clearInterval(fallbackTimer);
-    fallbackTimer = null;
-  }
-}
-
-/** Resync via /state quando o Realtime esta indisponivel (broadcast nao e garantido). */
-function startFallbackSync(code: string): void {
-  clearFallbackSync();
-  const poll = async () => {
-    const { token } = useGameStore.getState();
-    if (!token) return;
-    const res = await apiRequest<RoomResponse>(
-      `/api/rooms/${code}/state?token=${encodeURIComponent(token)}`,
-      { method: 'GET' }
-    );
-    if (res.ok) useGameStore.getState().mergeRoom(res.data.room);
-  };
-  void poll();
-  fallbackTimer = window.setInterval(poll, FALLBACK_SYNC_INTERVAL_MS);
-}
-
-interface BroadcastPayload {
-  payload?: { room?: Room; message?: string };
-}
-
-/** Assina o canal Realtime da sala (snapshot + eventos de som). */
-export function subscribeRoom(code: string): void {
-  unsubscribeRoom();
-  const c = getRealtimeClient();
-  if (!c) return;
-
-  channel = c.channel(`room:${code}`);
-  channel
-    .on('broadcast', { event: SERVER_EVENTS.ROOM_STATE }, ({ payload }: BroadcastPayload) => {
-      if (payload?.room) {
+function getAdapter(): RealtimeAdapter {
+  if (!adapter) {
+    adapter = new RealtimeAdapter({
+      onRoomState: (room) => {
         useGameStore.getState().setJudging(false);
-        useGameStore.getState().mergeRoom(payload.room);
-      }
-    })
-    .on('broadcast', { event: SERVER_EVENTS.JUDGING }, ({ payload }: BroadcastPayload) => {
-      useGameStore.getState().setJudging(true);
-      if (payload?.room) useGameStore.getState().mergeRoom(payload.room);
-    })
-    .on('broadcast', { event: SERVER_EVENTS.REVEAL }, () => {
-      useGameStore.getState().setJudging(false);
-    })
-    .on('broadcast', { event: SERVER_EVENTS.GAME_OVER }, () => {
-      useGameStore.getState().setJudging(false);
-    })
-    .on('broadcast', { event: SERVER_EVENTS.PLAYER_REMOVED }, ({ payload }: BroadcastPayload) => {
-      if (payload?.message) useGameStore.getState().setError(payload.message);
+        useGameStore.getState().mergeRoom(room);
+      },
+      onJudging: (room) => {
+        useGameStore.getState().setJudging(true);
+        if (room) useGameStore.getState().mergeRoom(room);
+      },
+      onReveal: () => {
+        useGameStore.getState().setJudging(false);
+      },
+      onGameOver: () => {
+        useGameStore.getState().setJudging(false);
+      },
+      onError: (message) => {
+        useGameStore.getState().setError(message);
+      },
+      setConnected: (v) => {
+        useGameStore.getState().setConnected(v);
+      },
+      mergeRoom: (room) => {
+        useGameStore.getState().mergeRoom(room);
+      },
+      getState: () => {
+        const s = useGameStore.getState();
+        return { token: s.token };
+      },
+      apiRequest: (path, opts) => apiRequest<Room>(path, opts as { method?: string }),
     });
+  }
+  return adapter;
+}
 
-  channel.subscribe((status) => {
-    const subscribed = status === 'SUBSCRIBED';
-    useGameStore.getState().setConnected(subscribed);
-    if (subscribed) {
-      clearFallbackSync();
-    } else {
-      startFallbackSync(code);
-    }
-  });
+export function subscribeRoom(code: string): void {
+  getAdapter().subscribe(code);
 }
 
 export function unsubscribeRoom(): void {
-  clearFallbackSync();
-  if (channel && client) {
-    client.removeChannel(channel).catch(() => {});
-  }
-  channel = null;
-  useGameStore.getState().setConnected(false);
+  getAdapter().unsubscribe();
 }

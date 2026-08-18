@@ -39,7 +39,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tighter italic text-[#FEFAE0] leading-none">
           Segue a Matilha
         </h1>
-        <p className="text-[#A3A3A3] text-sm sm:text-base max-w-xl mx-auto font-medium italic">
+        <p className="text-[#B0B0B0] text-sm sm:text-base max-w-xl mx-auto font-medium italic">
           Aqui a resposta certa não importa. O segredo é adivinhar o que a{' '}
           <span className="text-[#FEFAE0] font-bold underline">MAIORIA da matilha</span> vai escrever!
         </p>
@@ -60,7 +60,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <h2 className="text-2xl font-black uppercase tracking-tight italic text-[#FEFAE0] mb-1">
             Criar uma Sala
           </h2>
-          <p className="text-xs text-[#A3A3A3] font-medium leading-relaxed">
+          <p className="text-xs text-[#B0B0B0] font-medium leading-relaxed">
             Gere um código de sala, defina as regras e chame sua matilha para uivar junto.
           </p>
           <div className="mt-4 px-4 py-2 w-full bg-[#606C38] text-[#FEFAE0] text-xs font-bold uppercase tracking-widest text-center rounded-xl group-hover:bg-[#DDA15E] group-hover:text-[#05070A] transition-colors">
@@ -81,7 +81,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <h2 className="text-2xl font-black uppercase tracking-tight italic text-[#FEFAE0] mb-1">
             Entrar com Código
           </h2>
-          <p className="text-xs text-[#A3A3A3] font-medium leading-relaxed">
+          <p className="text-xs text-[#B0B0B0] font-medium leading-relaxed">
             Digite o código de 4 letras gerado pelo Host para se juntar à partida online.
           </p>
           <div className="mt-4 px-4 py-2 w-full bg-transparent border border-[#FEFAE0] text-[#FEFAE0] text-xs font-bold uppercase tracking-widest text-center rounded-xl group-hover:bg-[#FEFAE0] group-hover:text-[#05070A] transition-colors">
@@ -109,28 +109,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div className="p-3.5 rounded-xl bg-[#11161D] border border-[#606C38]/40">
             <span className="text-2xl mb-1 block">🏆</span>
             <span className="text-xs font-bold text-[#FEFAE0] uppercase tracking-wider block">A Matilha</span>
-            <span className="text-[10px] text-[#A3A3A3] font-medium block mt-0.5">Maioria (+2 Fichas)</span>
+            <span className="text-[10px] text-[#B0B0B0] font-medium block mt-0.5">Maioria (+2 Fichas)</span>
           </div>
 
           <div className="p-3.5 rounded-xl bg-[#11161D] border border-[#DDA15E]/40">
             <span className="text-2xl mb-1 block">🐾</span>
             <span className="text-xs font-bold text-[#DDA15E] uppercase tracking-wider block">Os Perdidos</span>
-            <span className="text-[10px] text-[#A3A3A3] font-medium block mt-0.5">Match minoria (+1 Ficha)</span>
+            <span className="text-[10px] text-[#B0B0B0] font-medium block mt-0.5">Match minoria (+1 Ficha)</span>
           </div>
 
           <div className="p-3.5 rounded-xl bg-[#11161D] border border-rose-500/30">
             <span className="text-2xl mb-1 block">🐺</span>
             <span className="text-xs font-bold text-rose-400 uppercase tracking-wider block">Lobo Solitário</span>
-            <span className="text-[10px] text-[#A3A3A3] font-medium block mt-0.5">Resposta única (0 Fichas)</span>
+            <span className="text-[10px] text-[#B0B0B0] font-medium block mt-0.5">Resposta única (0 Fichas)</span>
           </div>
         </div>
       </div>
 
       {/* Footer / Suggest Button */}
-      <div className="w-full flex items-center justify-center gap-4 text-xs text-[#A3A3A3] pt-2 pb-4">
+      <div className="w-full flex items-center justify-center gap-4 text-xs text-[#B0B0B0] pt-2 pb-4">
         <button
           onClick={onSuggestQuestion}
-          className="flex items-center gap-2 text-[#A3A3A3] hover:text-[#DDA15E] font-semibold uppercase tracking-wider text-xs transition-colors cursor-pointer"
+          className="flex items-center gap-2 text-[#B0B0B0] hover:text-[#DDA15E] font-semibold uppercase tracking-wider text-xs transition-colors cursor-pointer"
         >
           <MessageSquarePlus className="w-4 h-4 text-[#DDA15E]" />
           <span>Sugerir nova pergunta para o banco</span>

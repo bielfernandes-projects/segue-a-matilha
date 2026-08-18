@@ -30,14 +30,14 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ roomCode, onClose }) =
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
+            className="p-1.5 text-[#B0B0B0] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-3">
-          <p className="text-xs text-[#A3A3A3] font-medium">
+          <p className="text-xs text-[#B0B0B0] font-medium">
             Aponte a câmera do celular dos amigos para entrar direto na sala!
           </p>
 
@@ -51,7 +51,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ roomCode, onClose }) =
           </div>
 
           <div className="bg-[#11161D] p-3 rounded-xl border border-[#2D3139] space-y-1">
-            <span className="text-[10px] text-[#A3A3A3] uppercase font-bold tracking-widest block">Código de Acesso</span>
+            <span className="text-[10px] text-[#B0B0B0] uppercase font-bold tracking-widest block">Código de Acesso</span>
             <span className="font-mono text-2xl font-black text-[#DDA15E] tracking-wider block">{roomCode}</span>
           </div>
         </div>

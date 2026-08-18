@@ -49,7 +49,7 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
+            className="p-1.5 text-[#B0B0B0] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -62,13 +62,13 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
             </div>
           )}
 
-          <p className="p-3 rounded-xl bg-[#11161D] border border-[#606C38]/40 text-[11px] text-[#A3A3A3] font-medium leading-relaxed">
+          <p className="p-3 rounded-xl bg-[#11161D] border border-[#606C38]/40 text-[11px] text-[#B0B0B0] font-medium leading-relaxed">
             💡 Já estava numa partida e quer <strong className="text-[#DDA15E]">voltar</strong>? Digite o código da sala
             e o mesmo nome/apelido que você usou — o jogo reconecta seu perfil automaticamente.
           </p>
 
           <div>
-            <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest mb-2">
+            <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest mb-2">
               Código de 4 Letras da Sala
             </label>
             <input
@@ -83,7 +83,7 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest mb-2">
+            <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest mb-2">
               Seu Nome ou Apelido
             </label>
             <input

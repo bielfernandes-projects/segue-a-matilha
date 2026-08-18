@@ -21,11 +21,11 @@ export const PausedScreen: React.FC<PausedScreenProps> = ({ room, connected }) =
 
         <h2 className="text-2xl font-black uppercase tracking-tight italic text-[#FEFAE0]">Partida Pausada</h2>
 
-        <p className="text-sm text-[#A3A3A3] font-medium leading-relaxed">
+        <p className="text-sm text-[#B0B0B0] font-medium leading-relaxed">
           {room.pausedReason || 'O Host se desconectou. Aguardando um novo Host assumir a matilha...'}
         </p>
 
-        <div className="flex items-center justify-center gap-2 text-[11px] text-[#A3A3A3] uppercase tracking-widest font-bold">
+        <div className="flex items-center justify-center gap-2 text-[11px] text-[#B0B0B0] uppercase tracking-widest font-bold">
           {connected ? (
             <>
               <Wifi className="w-3.5 h-3.5 text-[#606C38]" />

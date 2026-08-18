@@ -70,7 +70,7 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
           <span className="text-xs font-bold text-[#606C38] bg-[#606C38]/20 px-3 py-1 rounded-full border border-[#606C38]/40 uppercase tracking-widest">
             Rodada {room.currentRound} {room.settings.mode === 'rounds' ? `/ ${room.settings.totalRounds}` : ''}
           </span>
-          <span className="text-xs text-[#A3A3A3] font-medium hidden sm:inline">
+          <span className="text-xs text-[#B0B0B0] font-medium hidden sm:inline">
             Categoria: <strong className="text-[#FEFAE0] font-bold">{question?.category || 'Geral'}</strong>
           </span>
         </div>
@@ -97,7 +97,7 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
           "{question?.text}"
         </h2>
 
-        <p className="text-xs text-[#A3A3A3] font-medium italic">
+        <p className="text-xs text-[#B0B0B0] font-medium italic">
           💡 Dica: Escreva o que você acha que a <strong className="text-[#DDA15E]">MAIORIA dos seus amigos</strong>{' '}
           vai responder!
         </p>
@@ -111,17 +111,17 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
             <h3 className="text-lg font-black uppercase tracking-tight italic text-[#FEFAE0]">
               Resposta Enviada em Segredo! 🐾
             </h3>
-            <p className="text-xs text-[#A3A3A3] font-medium">
+            <p className="text-xs text-[#B0B0B0] font-medium">
               Sua resposta: <strong className="text-[#DDA15E] font-bold">"{currentPlayer.currentAnswer}"</strong>
             </p>
-            <p className="text-[11px] text-[#A3A3A3] pt-1 italic">
+            <p className="text-[11px] text-[#B0B0B0] pt-1 italic">
               Aguardando os outros AUmigos para a IA fazer a contagem...
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest mb-2 flex items-center justify-between">
+              <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest mb-2 flex items-center justify-between">
                 <span>Sua Resposta Secreta</span>
                 <span className="font-mono">{answerInput.length}/40</span>
               </label>
@@ -172,12 +172,12 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
                 <div
                   key={p.id}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                    p.hasAnswered ? 'bg-[#11161D] border-[#606C38] text-[#FEFAE0]' : 'bg-[#11161D]/40 border-[#2D3139] text-[#A3A3A3]'
+                    p.hasAnswered ? 'bg-[#11161D] border-[#606C38] text-[#FEFAE0]' : 'bg-[#11161D]/40 border-[#2D3139] text-[#B0B0B0]'
                   }`}
                 >
                   <DogAvatar avatarId={p.avatarId} size={20} />
                   <span>{p.name}</span>
-                  {p.hasAnswered ? <span className="text-[#606C38] text-[10px]">🐾</span> : <span className="text-[#A3A3A3] text-[10px]">...</span>}
+                  {p.hasAnswered ? <span className="text-[#606C38] text-[10px]">🐾</span> : <span className="text-[#B0B0B0] text-[10px]">...</span>}
                 </div>
               );
             })}

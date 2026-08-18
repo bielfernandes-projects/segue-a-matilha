@@ -15,6 +15,7 @@ export {
   updateQuestionStatus,
   withRoom,
 } from './persistence';
-export { buildPublicRoom } from './state';
+export { buildPublicRoom, GameError } from './state';
+export type { GameRoom } from './state';
 export { groupAnswers } from './judge';
 export type { JudgeFn, JudgeOutput } from './judge';

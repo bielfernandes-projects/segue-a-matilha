@@ -21,7 +21,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
+            className="p-1.5 text-[#B0B0B0] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -51,7 +51,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ onClose }) => {
                   <span className="text-xs font-black uppercase tracking-wider block" style={{ color: rule.color }}>
                     {rule.name} — {rule.points} {rule.points === 1 ? 'Ponto' : 'Pontos'}
                   </span>
-                  <p className="text-[11px] text-[#A3A3A3] font-medium mt-1">
+                  <p className="text-[11px] text-[#B0B0B0] font-medium mt-1">
                     {rule.description}
                   </p>
                 </div>
@@ -65,7 +65,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ onClose }) => {
             <Brain className="w-3.5 h-3.5 text-[#DDA15E]" />
             <span>{AI_CURATION.title}</span>
           </h3>
-          <p className="text-xs text-[#A3A3A3] leading-relaxed font-medium">
+          <p className="text-xs text-[#B0B0B0] leading-relaxed font-medium">
             {AI_CURATION.description}
           </p>
         </div>

@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, WifiOff, Edit2, X, Check, GripVertical } from 'lucide-react';
-import type { Room, Cluster, ClusterInput, RevealAnswer } from '@segue/shared';
-import { DogAvatar } from './DogAvatar';
+import { ArrowRight, WifiOff, Edit2, X, Check } from 'lucide-react';
+import type { Room } from '@segue/shared';
 import { useGameStore } from '../store';
 import { apiRequest } from '../lib/api';
+import { clustersToEditable, prepareConsiderPayload } from '../lib/cluster-utils';
+import type { EditableCluster } from '../lib/cluster-utils';
+import { useDragAndDrop } from '../lib/use-drag-and-drop';
+import { ClusterRenderer } from './ClusterRenderer';
 
 interface RevealScreenProps {
   room: Room;
   currentPlayerId: string;
   onNextRound: () => void;
   isLoading?: boolean;
-}
-
-interface EditableCluster {
-  rotulo: string;
-  respostas: RevealAnswer[];
-  points: number;
-  groupType: 'matilha' | 'perdidos' | 'lobo';
 }
 
 export const RevealScreen: React.FC<RevealScreenProps> = ({
@@ -32,50 +28,36 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
   const setLoadingReveal = useGameStore((s) => s.setLoadingReveal);
   const [showConsiderModal, setShowConsiderModal] = useState(false);
   const [editableClusters, setEditableClusters] = useState<EditableCluster[]>([]);
+  const drag = useDragAndDrop(editableClusters, setEditableClusters);
 
   if (loadingReveal || !result || !result.clusters) {
     return (
-      <div className="fixed inset-0 z-[80] bg-[#05070A]/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <div className="w-16 h-16 rounded-full border-4 border-[#DDA15E]/30 border-t-[#DDA15E] animate-spin" />
-        <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight italic text-[#FEFAE0]">
-          IA fazendo a contagem...
-        </h3>
-        <p className="text-sm text-[#A3A3A3] font-medium">Agrupando as respostas do bando...</p>
+      <div className="fixed inset-0 z-[80] bg-[#05070A]/95 backdrop-blur-sm flex flex-col items-center justify-center gap-5 px-6 text-center animate-fade-up">
+        <div className="relative w-20 h-20">
+          <div className="absolute inset-0 rounded-full border-4 border-[#DDA15E]/20" />
+          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#DDA15E] spinner-gold" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight italic text-[#FEFAE0]">
+            IA fazendo a contagem...
+          </h3>
+          <p className="text-sm text-[#B0B0B0] font-medium">Agrupando as respostas do bando...</p>
+        </div>
       </div>
     );
   }
 
-  const sortedClusters = [...result.clusters].sort((a, b) => b.count - a.count);
-
   useEffect(() => {
     if (result.clusters) {
-      setEditableClusters(
-        result.clusters.map((c) => ({
-          rotulo: c.rotulo,
-          respostas: [...c.respostas],
-          points: c.points,
-          groupType: c.groupType,
-        }))
-      );
+      setEditableClusters(clustersToEditable(result.clusters));
     }
   }, [result.clusters]);
 
   const handleConsiderClick = () => {
     if (result.clusters) {
-      setEditableClusters(
-        result.clusters.map((c) => ({
-          rotulo: c.rotulo,
-          respostas: [...c.respostas],
-          points: c.points,
-          groupType: c.groupType,
-        }))
-      );
+      setEditableClusters(clustersToEditable(result.clusters));
     }
     setShowConsiderModal(true);
-  };
-
-  const handleCloseConsiderModal = () => {
-    setShowConsiderModal(false);
   };
 
   const updateClusterLabel = (index: number, label: string) => {
@@ -84,28 +66,8 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
     );
   };
 
-  const moveAnswer = (fromClusterIdx: number, toClusterIdx: number, answerIdx: number) => {
-    setEditableClusters((prev) => {
-      const next = prev.map((c) => ({ ...c, respostas: [...c.respostas] }));
-      const [moved] = next[fromClusterIdx].respostas.splice(answerIdx, 1);
-      next[toClusterIdx].respostas.push(moved);
-      return next;
-    });
-  };
-
-  const removeEmptyClusters = (clusters: EditableCluster[]) =>
-    clusters.filter((c) => c.respostas.length > 0);
-
-  const preparePayload = (): ClusterInput[] => {
-    const cleaned = removeEmptyClusters(editableClusters);
-    return cleaned.map((c) => ({
-      rotulo: c.rotulo.trim() || c.respostas[0]?.text || 'Sem rótulo',
-      respostas: c.respostas.map((r) => r.text),
-    }));
-  };
-
   const handleSaveConsider = async () => {
-    const payload = preparePayload();
+    const payload = prepareConsiderPayload(editableClusters);
     setLoadingReveal(true);
     try {
       const res = await apiRequest<{ ok: boolean; room: Room }>(
@@ -117,36 +79,12 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
       } else {
         useGameStore.getState().setError(res.error || 'Erro ao salvar correção');
       }
-    } catch (e) {
+    } catch {
       useGameStore.getState().setError('Erro de conexão ao salvar correção');
     } finally {
       setLoadingReveal(false);
       setShowConsiderModal(false);
     }
-  };
-
-  const getClusterStyles = (cluster: EditableCluster, idx: number) => {
-    const isMajority = idx === 0 && cluster.respostas.length > 0;
-    const isMinority = idx > 0 && cluster.respostas.length > 0 && !isMajority;
-
-    let borderClass = 'border border-[#2D3139] bg-[#0A0E14]';
-    let badgeText = 'Lobo Solitário (0 Fichas)';
-    let badgeBg = 'bg-rose-950/40 text-rose-400 border-rose-500/30';
-    let icon = '🐺';
-
-    if (isMajority) {
-      borderClass = 'border-2 border-[#DDA15E] bg-[#0A0E14] shadow-2xl';
-      badgeText = 'A Matilha (+2 Fichas 🎉)';
-      badgeBg = 'bg-[#DDA15E] text-[#05070A] font-black uppercase tracking-wider';
-      icon = '🏆';
-    } else if (isMinority) {
-      borderClass = 'border-2 border-[#606C38] bg-[#0A0E14]';
-      badgeText = 'Os Perdidos (+1 Ficha 🐾)';
-      badgeBg = 'bg-[#606C38] text-[#FEFAE0] font-bold uppercase tracking-wider';
-      icon = '🐾';
-    }
-
-    return { borderClass, badgeText, badgeBg, icon };
   };
 
   return (
@@ -166,134 +104,39 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
             )}
           </div>
           <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tight italic text-[#FEFAE0]">
-            "{result.question.text}"
+            &ldquo;{result.question.text}&rdquo;
           </h2>
-          <p className="text-xs text-[#A3A3A3] font-medium">
+          <p className="text-xs text-[#B0B0B0] font-medium">
             Respostas agrupadas por{' '}
             <strong className="text-[#DDA15E]">{result.offline ? 'matching local' : 'Inteligência Artificial (Curadoria Semântica)'}</strong>
           </p>
         </div>
 
-        {/* Answer Clusters Grid */}
+        {/* Answer Clusters */}
         <div className="space-y-4">
-          {editableClusters.map((cluster, idx) => {
-            const { borderClass, badgeText, badgeBg, icon } = getClusterStyles(cluster, idx);
-            const variants = Array.from(new Set(cluster.respostas.map((r) => r.text)));
+          {editableClusters.map((cluster, idx) => (
+            <ClusterRenderer
+              key={idx}
+              cluster={cluster}
+              index={idx}
+              currentPlayerId={currentPlayerId}
+              drag={drag}
+              onLabelChange={updateClusterLabel}
+            />
+          ))}
 
-            return (
-              <div key={idx} className={`p-5 rounded-2xl ${borderClass} space-y-3 transition-all`}>
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{icon}</span>
-                    <input
-                      type="text"
-                      value={cluster.rotulo}
-                      onChange={(e) => updateClusterLabel(idx, e.target.value)}
-                      className="text-xl font-black uppercase tracking-tight italic text-[#FEFAE0] bg-transparent border-none outline-none focus:ring-1 focus:ring-[#DDA15E] rounded px-1"
-                      style={{ minWidth: '120px' }}
-                    />
-                    <span className="text-xs font-mono font-bold text-[#DDA15E] bg-[#11161D] border border-[#2D3139] px-2.5 py-0.5 rounded-full">
-                      {cluster.respostas.length} {cluster.respostas.length === 1 ? 'voto' : 'votos'}
-                    </span>
-                  </div>
-
-                  <div className={`px-3 py-1 rounded-full text-xs border ${badgeBg} flex items-center gap-1.5`}>
-                    <span>{badgeText}</span>
-                  </div>
-                </div>
-
-                {variants.length > 0 && variants.length !== cluster.respostas.length && (
-                  <p className="text-[11px] text-[#A3A3A3] italic">
-                    Variações digitadas: {variants.map((a) => `"${a}"`).join(', ')}
-                  </p>
-                )}
-
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {cluster.respostas.map((r, answerIdx) => {
-                    const isCurrent = r.playerId === currentPlayerId;
-                    return (
-                      <div
-                        key={r.playerId}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border cursor-grab active:cursor-grabbing ${
-                          isCurrent
-                            ? 'bg-[#11161D] border-[#DDA15E] text-[#FEFAE0] ring-1 ring-[#DDA15E]'
-                            : 'bg-[#11161D] border-[#2D3139] text-[#A3A3A3]'
-                        }`}
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ fromCluster: idx, answerIdx }));
-                          e.dataTransfer.effectAllowed = 'move';
-                        }}
-                      >
-                        <GripVertical className="w-4 h-4 text-[#606C38] cursor-grab opacity-50 hover:opacity-100" />
-                        <DogAvatar avatarId={r.avatarId} size={20} />
-                        <span style={{ color: isCurrent ? r.color : undefined }}>{r.playerName}</span>
-                        <span className="text-[10px] text-[#DDA15E] font-mono">+{cluster.points} pts</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div
-                  className="drop-zone border-2 border-dashed border-[#2D3139] rounded-xl p-3 min-h-[60px]"
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    try {
-                      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-                      if (data.fromCluster !== idx) {
-                        moveAnswer(data.fromCluster, idx, data.answerIdx);
-                      }
-                    } catch {
-                      // ignore invalid data
-                    }
-                  }}
-                >
-                  {cluster.respostas.length === 0 && (
-                    <p className="text-center text-[11px] text-[#606C38] italic">Arraste respostas aqui</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Empty cluster drop zone for new groups */}
           <div
             className="drop-zone border-2 border-dashed border-[#DDA15E]/50 rounded-xl p-3 min-h-[60px] bg-[#0A0E14]/50"
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = 'move';
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              try {
-                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-                const newCluster: EditableCluster = {
-                  rotulo: '',
-                  respostas: [editableClusters[data.fromCluster].respostas[data.answerIdx]],
-                  points: 0,
-                  groupType: 'lobo',
-                };
-                setEditableClusters((prev) => {
-                  const next = prev.map((c) => ({ ...c, respostas: [...c.respostas] }));
-                  next[data.fromCluster].respostas.splice(data.answerIdx, 1);
-                  return [...next, newCluster];
-                });
-              } catch {
-                // ignore invalid data
-              }
-            }}
+            onDragOver={drag.onDragOver}
+            onDrop={drag.onDropToNewCluster()}
           >
             <p className="text-center text-[11px] text-[#DDA15E]/50 italic">Solte aqui para criar novo grupo</p>
           </div>
         </div>
 
-        {/* Next Round Button (Host only) or Waiting notice */}
+        {/* Host Actions */}
         <div className="pt-4 flex gap-3">
-          {isHost && (
+          {isHost ? (
             <>
               <button
                 onClick={handleConsiderClick}
@@ -312,9 +155,8 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
                 <ArrowRight className="w-5 h-5" />
               </button>
             </>
-          )}
-          {!isHost && (
-            <div className="w-full p-4 rounded-2xl bg-[#0A0E14] border border-[#2D3139] text-center text-xs text-[#A3A3A3] font-medium">
+          ) : (
+            <div className="w-full p-4 rounded-2xl bg-[#0A0E14] border border-[#2D3139] text-center text-xs text-[#B0B0B0] font-medium">
               Aguardando o Host avançar para o placar da partida... 🐾
             </div>
           )}
@@ -330,121 +172,34 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
                 Corrigir Agrupamento da IA
               </h3>
               <button
-                onClick={handleCloseConsiderModal}
-                className="p-2 rounded-lg text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] transition-colors"
+                onClick={() => setShowConsiderModal(false)}
+                className="p-2 rounded-lg text-[#B0B0B0] hover:text-[#FEFAE0] hover:bg-[#11161D] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <p className="text-sm text-[#A3A3A3] text-center">
+              <p className="text-sm text-[#B0B0B0] text-center">
                 Arraste as respostas entre os grupos. Clique no rótulo para renomear. Solte no último quadrado para criar novo grupo.
               </p>
 
-              {editableClusters.map((cluster, idx) => {
-                const { borderClass, badgeText, badgeBg, icon } = getClusterStyles(cluster, idx);
-                const variants = Array.from(new Set(cluster.respostas.map((r) => r.text)));
+              {editableClusters.map((cluster, idx) => (
+                <ClusterRenderer
+                  key={idx}
+                  cluster={cluster}
+                  index={idx}
+                  currentPlayerId={currentPlayerId}
+                  drag={drag}
+                  onLabelChange={updateClusterLabel}
+                  compact
+                />
+              ))}
 
-                return (
-                  <div key={idx} className={`p-4 rounded-xl ${borderClass} space-y-3`}>
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{icon}</span>
-                        <input
-                          type="text"
-                          value={cluster.rotulo}
-                          onChange={(e) => updateClusterLabel(idx, e.target.value)}
-                          className="text-lg font-black uppercase tracking-tight italic text-[#FEFAE0] bg-transparent border-none outline-none focus:ring-1 focus:ring-[#DDA15E] rounded px-1"
-                          style={{ minWidth: '140px' }}
-                        />
-                        <span className="text-xs font-mono font-bold text-[#DDA15E] bg-[#11161D] border border-[#2D3139] px-2 py-0.5 rounded-full">
-                          {cluster.respostas.length} {cluster.respostas.length === 1 ? 'voto' : 'votos'}
-                        </span>
-                      </div>
-                      <div className={`px-3 py-1 rounded-full text-xs border ${badgeBg} flex items-center gap-1.5`}>
-                        <span>{badgeText}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {cluster.respostas.map((r, answerIdx) => {
-                        const isCurrent = r.playerId === currentPlayerId;
-                        return (
-                          <div
-                            key={r.playerId}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border cursor-grab ${
-                              isCurrent
-                                ? 'bg-[#11161D] border-[#DDA15E] text-[#FEFAE0] ring-1 ring-[#DDA15E]'
-                                : 'bg-[#11161D] border-[#2D3139] text-[#A3A3A3]'
-                            }`}
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData('text/plain', JSON.stringify({ fromCluster: idx, answerIdx }));
-                              e.dataTransfer.effectAllowed = 'move';
-                            }}
-                          >
-                            <GripVertical className="w-4 h-4 text-[#606C38] cursor-grab opacity-50 hover:opacity-100" />
-                            <DogAvatar avatarId={r.avatarId} size={20} />
-                            <span style={{ color: isCurrent ? r.color : undefined }}>{r.playerName}</span>
-                            <span className="text-[10px] text-[#DDA15E] font-mono">+{cluster.points} pts</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div
-                      className="drop-zone border-2 border-dashed border-[#2D3139] rounded-lg p-3 min-h-[50px]"
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = 'move';
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        try {
-                          const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-                          if (data.fromCluster !== idx) {
-                            moveAnswer(data.fromCluster, idx, data.answerIdx);
-                          }
-                        } catch {
-                          // ignore
-                        }
-                      }}
-                    >
-                      {cluster.respostas.length === 0 && (
-                        <p className="text-center text-[11px] text-[#606C38] italic">Arraste respostas aqui</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Empty cluster drop zone for new groups */}
               <div
                 className="drop-zone border-2 border-dashed border-[#DDA15E]/50 rounded-lg p-3 min-h-[50px] bg-[#0A0E14]/50"
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = 'move';
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  try {
-                    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-                    const newCluster: EditableCluster = {
-                      rotulo: '',
-                      respostas: [editableClusters[data.fromCluster].respostas[data.answerIdx]],
-                      points: 0,
-                      groupType: 'lobo',
-                    };
-                    setEditableClusters((prev) => {
-                      const next = prev.map((c) => ({ ...c, respostas: [...c.respostas] }));
-                      next[data.fromCluster].respostas.splice(data.answerIdx, 1);
-                      return [...next, newCluster];
-                    });
-                  } catch {
-                    // ignore
-                  }
-                }}
+                onDragOver={drag.onDragOver}
+                onDrop={drag.onDropToNewCluster()}
               >
                 <p className="text-center text-[11px] text-[#DDA15E]/50 italic">Solte aqui para criar novo grupo</p>
               </div>
@@ -452,8 +207,8 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
 
             <div className="p-4 border-t border-[#2D3139] flex gap-3">
               <button
-                onClick={handleCloseConsiderModal}
-                className="flex-1 py-3 rounded-xl bg-[#11161D] border border-[#2D3139] text-[#A3A3A3] font-bold uppercase tracking-wider hover:bg-[#2D3139] hover:text-[#FEFAE0] transition-colors"
+                onClick={() => setShowConsiderModal(false)}
+                className="flex-1 py-3 rounded-xl bg-[#11161D] border border-[#2D3139] text-[#B0B0B0] font-bold uppercase tracking-wider hover:bg-[#2D3139] hover:text-[#FEFAE0] transition-colors"
               >
                 Cancelar
               </button>
@@ -463,7 +218,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
                 className="flex-1 py-3 rounded-xl bg-[#DDA15E] text-[#05070A] font-black uppercase tracking-wider hover:bg-[#FEFAE0] transition-colors disabled:opacity-50"
               >
                 {loadingReveal ? 'Salvando...' : 'Salvar Correção'}
-                <Check className="w-4 h-4 ml-2" />
+                <Check className="w-4 h-4 ml-2 inline" />
               </button>
             </div>
           </div>

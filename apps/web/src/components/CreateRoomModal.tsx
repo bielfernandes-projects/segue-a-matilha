@@ -47,7 +47,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
+            className="p-1.5 text-[#B0B0B0] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -62,7 +62,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
 
           {/* Host Name input */}
           <div>
-            <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest mb-2">
+            <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest mb-2">
               Seu Nome ou Apelido de Cão Alfa
             </label>
             <input
@@ -81,7 +81,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
 
           {/* Game Mode Selection */}
           <div className="space-y-3">
-            <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest">
+            <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest">
               Modo de Jogo da Sala
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -98,7 +98,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
                   <Layers className="w-4 h-4 text-[#606C38]" />
                   <span>Modo A: Rodadas</span>
                 </div>
-                <p className="text-[11px] text-[#A3A3A3]">Número fixo de perguntas para encerrar a partida.</p>
+                <p className="text-[11px] text-[#B0B0B0]">Número fixo de perguntas para encerrar a partida.</p>
               </button>
 
               <button
@@ -114,7 +114,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
                   <Target className="w-4 h-4 text-[#DDA15E]" />
                   <span>Modo B: Corrida</span>
                 </div>
-                <p className="text-[11px] text-[#A3A3A3]">Jogo até alguém bater a meta de Fichas estabelecida.</p>
+                <p className="text-[11px] text-[#B0B0B0]">Jogo até alguém bater a meta de Fichas estabelecida.</p>
               </button>
             </div>
 
@@ -123,7 +123,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
               <div className="bg-[#11161D] p-3.5 rounded-xl border border-[#2D3139] flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold text-[#FEFAE0] block">Limite de Rodadas</span>
-                  <span className="text-[10px] text-[#A3A3A3]">Mínimo 6 | Máximo 20</span>
+                  <span className="text-[10px] text-[#B0B0B0]">Mínimo 6 | Máximo 20</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -143,7 +143,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
               <div className="bg-[#11161D] p-3.5 rounded-xl border border-[#2D3139] flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold text-[#FEFAE0] block">Meta de Fichas (Pontos)</span>
-                  <span className="text-[10px] text-[#A3A3A3]">Mínimo 12 | Máximo 40</span>
+                  <span className="text-[10px] text-[#B0B0B0]">Mínimo 12 | Máximo 40</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -168,7 +168,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ onClose, onCre
                   <Timer className="w-4 h-4 text-[#DDA15E]" />
                   Tempo por Rodada
                 </span>
-                <span className="text-[10px] text-[#A3A3A3]">Mínimo 30s | Máximo 120s</span>
+                <span className="text-[10px] text-[#B0B0B0]">Mínimo 30s | Máximo 120s</span>
               </div>
               <div className="flex items-center gap-2">
                 <input

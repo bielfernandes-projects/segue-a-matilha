@@ -38,7 +38,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
         <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight italic text-[#FEFAE0]">
           Rodada {room.currentRound} {room.settings.mode === 'rounds' ? `/ ${room.settings.totalRounds}` : ''} Concluída!
         </h2>
-        <p className="text-xs text-[#A3A3A3] font-medium">
+        <p className="text-xs text-[#B0B0B0] font-medium">
           {room.settings.mode === 'rounds'
             ? `Meta: Fim na rodada ${room.settings.totalRounds}`
             : `Meta: Primeiro a atingir ${room.settings.targetScore} Fichas`}
@@ -52,7 +52,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
           const majorityCount = p.roundScores.filter((s) => s === 2).length;
 
           let rankBadge = `${rank + 1}º`;
-          let rankClass = 'bg-[#11161D] text-[#A3A3A3] border-[#2D3139]';
+          let rankClass = 'bg-[#11161D] text-[#B0B0B0] border-[#2D3139]';
           if (rank === 0) {
             rankBadge = '🥇 1º';
             rankClass = 'bg-[#DDA15E] text-[#05070A] font-black uppercase border-[#DDA15E]';
@@ -86,7 +86,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
                     {p.isHost && <Crown className="w-3.5 h-3.5 text-[#DDA15E] shrink-0" />}
                     {isCurrent && <span className="text-[10px] font-bold text-[#DDA15E] uppercase tracking-wider">(Você)</span>}
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[#A3A3A3] pt-0.5 font-medium">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[#B0B0B0] pt-0.5 font-medium">
                     <span>
                       🏆 Matilhas: <strong className="text-[#FEFAE0]">{majorityCount}</strong>
                     </span>
@@ -104,9 +104,9 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
 
               <div className="text-right shrink-0 min-w-0">
                 <span className="font-mono text-lg sm:text-2xl font-black text-[#DDA15E] block">
-                  {p.score} <span className="text-xs font-sans text-[#A3A3A3]">pts</span>
+                  {p.score} <span className="text-xs font-sans text-[#B0B0B0]">pts</span>
                 </span>
-                <span className="text-[9px] uppercase tracking-wider font-semibold text-[#A3A3A3] block whitespace-nowrap">
+                <span className="text-[9px] uppercase tracking-wider font-semibold text-[#B0B0B0] block whitespace-nowrap">
                   Fichas AUmigo
                 </span>
               </div>
@@ -127,7 +127,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
             <ArrowRight className="w-5 h-5" />
           </button>
         ) : (
-          <div className="p-4 rounded-2xl bg-[#0A0E14] border border-[#2D3139] text-center text-xs text-[#A3A3A3] font-medium">
+          <div className="p-4 rounded-2xl bg-[#0A0E14] border border-[#2D3139] text-center text-xs text-[#B0B0B0] font-medium">
             Aguardando o Host iniciar a próxima rodada... 🐾
           </div>
         )}

@@ -57,7 +57,7 @@ export const SuggestQuestionModal: React.FC<SuggestQuestionModalProps> = ({ onCl
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
+            className="p-1.5 text-[#B0B0B0] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -69,7 +69,7 @@ export const SuggestQuestionModal: React.FC<SuggestQuestionModalProps> = ({ onCl
             <h3 className="text-lg font-black uppercase tracking-tight italic text-[#FEFAE0]">
               Pergunta Enviada com Sucesso! 🐾
             </h3>
-            <p className="text-xs text-[#A3A3A3] font-medium">
+            <p className="text-xs text-[#B0B0B0] font-medium">
               Sua sugestão foi salva com o status{' '}
               <strong className="text-[#DDA15E]">"pendente"</strong> e passará pela curadoria admin para entrar no banco
               oficial!
@@ -90,7 +90,7 @@ export const SuggestQuestionModal: React.FC<SuggestQuestionModalProps> = ({ onCl
             )}
 
             <div>
-              <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest mb-2">
+              <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest mb-2">
                 Texto da Pergunta (Sem resposta correta factual!)
               </label>
               <textarea
@@ -105,7 +105,7 @@ export const SuggestQuestionModal: React.FC<SuggestQuestionModalProps> = ({ onCl
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest mb-2">
+              <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest mb-2">
                 Seu Nome (Autor - Opcional)
               </label>
               <input

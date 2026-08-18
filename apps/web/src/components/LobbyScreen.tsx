@@ -72,7 +72,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
               <QrCode className="w-5 h-5" />
             </button>
           </div>
-          <p className="text-xs text-[#A3A3A3] font-medium">
+          <p className="text-xs text-[#B0B0B0] font-medium">
             Modo: <strong className="text-[#DDA15E] font-bold">{modeText}</strong> | {room.settings.timeLimitSeconds}s por rodada
           </p>
         </div>
@@ -134,7 +134,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-[#A3A3A3] truncate block">{avatar.breed}</span>
+                  <span className="text-[10px] text-[#B0B0B0] truncate block">{avatar.breed}</span>
                   {isCurrent && (
                     <span className="text-[9px] font-bold text-[#DDA15E] uppercase tracking-wider block">(Você)</span>
                   )}
@@ -162,7 +162,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
               <Dog className="w-5 h-5 animate-bounce" />
               <span>Aguardando o Host iniciar a partida...</span>
             </div>
-            <p className="text-xs text-[#A3A3A3]">
+            <p className="text-xs text-[#B0B0B0]">
               O Host (<strong className="text-[#FEFAE0]">{room.players.find((p) => p.isHost)?.name}</strong>) tem o
               controle para dar a largada!
             </p>

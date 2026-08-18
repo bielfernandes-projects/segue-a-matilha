@@ -127,7 +127,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
+            className="p-1.5 text-[#B0B0B0] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-[#2D3139]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -141,7 +141,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
               </div>
             )}
             <div>
-              <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest mb-2">
+              <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest mb-2">
                 Token de Admin (definido no servidor)
               </label>
               <div className="relative">
@@ -153,7 +153,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
                   required
                   className="w-full bg-[#11161D] border-b-2 border-[#2D3139] focus:border-[#DDA15E] px-4 py-3 text-[#FEFAE0] placeholder:text-[#2D3139] text-base font-bold outline-none transition-all rounded-t-xl pl-10"
                 />
-                <Key className="w-4 h-4 text-[#A3A3A3] absolute left-3.5 top-3.5" />
+                <Key className="w-4 h-4 text-[#B0B0B0] absolute left-3.5 top-3.5" />
               </div>
             </div>
 
@@ -170,7 +170,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
               <button
                 onClick={() => setActiveTab('pendente')}
                 className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === 'pendente' ? 'bg-[#DDA15E] text-[#05070A]' : 'text-[#A3A3A3] hover:text-[#FEFAE0]'
+                  activeTab === 'pendente' ? 'bg-[#DDA15E] text-[#05070A]' : 'text-[#B0B0B0] hover:text-[#FEFAE0]'
                 }`}
               >
                 Pendentes (Sugestões)
@@ -178,7 +178,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
               <button
                 onClick={() => setActiveTab('aprovada')}
                 className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === 'aprovada' ? 'bg-[#606C38] text-[#FEFAE0]' : 'text-[#A3A3A3] hover:text-[#FEFAE0]'
+                  activeTab === 'aprovada' ? 'bg-[#606C38] text-[#FEFAE0]' : 'text-[#B0B0B0] hover:text-[#FEFAE0]'
                 }`}
               >
                 Aprovadas (Pool Oficial)
@@ -188,7 +188,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
                 className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 ${
                   activeTab === 'add'
                     ? 'bg-[#11161D] text-[#DDA15E] border border-[#2D3139]'
-                    : 'text-[#A3A3A3] hover:text-[#FEFAE0]'
+                    : 'text-[#B0B0B0] hover:text-[#FEFAE0]'
                 }`}
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -199,7 +199,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
             {activeTab === 'add' ? (
               <form onSubmit={handleAddQuestion} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest mb-2">
+                  <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest mb-2">
                     Texto da Pergunta
                   </label>
                   <input
@@ -212,7 +212,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest mb-2">
+                  <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest mb-2">
                     Categoria
                   </label>
                   <input
@@ -246,11 +246,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
                   </div>
                 )}
                 {loading ? (
-                  <p className="text-center text-xs text-[#A3A3A3] py-4 flex items-center justify-center gap-2">
+                  <p className="text-center text-xs text-[#B0B0B0] py-4 flex items-center justify-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Carregando perguntas...
                   </p>
                 ) : filteredQuestions.length === 0 ? (
-                  <p className="text-center text-xs text-[#A3A3A3] py-4">
+                  <p className="text-center text-xs text-[#B0B0B0] py-4">
                     Nenhuma pergunta com status "{activeTab}".
                   </p>
                 ) : (
@@ -261,7 +261,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ onClose }) => 
                     >
                       <div className="space-y-1 pr-2">
                         <p className="font-bold text-[#FEFAE0]">"{q.text}"</p>
-                        <span className="text-[10px] text-[#A3A3A3]">
+                        <span className="text-[10px] text-[#B0B0B0]">
                           Autor: {q.author || 'Sistema'} | Categoria: {q.category}
                         </span>
                       </div>

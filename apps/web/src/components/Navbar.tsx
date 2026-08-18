@@ -35,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <h1 className="font-black text-xl sm:text-2xl uppercase tracking-tighter italic text-[#FEFAE0] leading-none flex items-center gap-2">
               Segue a Matilha
             </h1>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#A3A3A3] font-semibold mt-0.5">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-[#B0B0B0] font-semibold mt-0.5">
               O Party Game da Maioria
             </p>
           </div>
@@ -45,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {roomCode && (
           <div className="flex items-center gap-3 bg-[#0A0E14] border border-[#2D3139] px-4 py-2 rounded-xl shadow-inner">
             <div className="text-right">
-              <p className="text-[9px] uppercase tracking-[0.2em] text-[#A3A3A3] font-bold">
+              <p className="text-[9px] uppercase tracking-[0.2em] text-[#B0B0B0] font-bold">
                 {connected ? 'Código da Sala' : 'Reconectando...'}
               </p>
               <p className="font-mono text-xl sm:text-2xl font-bold text-[#DDA15E] leading-none">
@@ -77,7 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={onOpenRules}
-            className="p-2 text-[#A3A3A3] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-all border border-transparent hover:border-[#2D3139]"
+            className="p-2 text-[#B0B0B0] hover:text-[#FEFAE0] hover:bg-[#11161D] rounded-xl transition-all border border-transparent hover:border-[#2D3139]"
             title="Regras do Jogo"
           >
             <HelpCircle className="w-5 h-5 text-[#DDA15E]" />
@@ -85,7 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={onOpenAdmin}
-            className="p-2 text-[#A3A3A3] hover:text-[#DDA15E] hover:bg-[#11161D] rounded-xl transition-all border border-transparent hover:border-[#2D3139]"
+            className="p-2 text-[#B0B0B0] hover:text-[#DDA15E] hover:bg-[#11161D] rounded-xl transition-all border border-transparent hover:border-[#2D3139]"
             title="Curadoria Admin"
           >
             <Shield className="w-5 h-5" />

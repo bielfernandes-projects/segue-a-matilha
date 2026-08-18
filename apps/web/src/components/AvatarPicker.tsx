@@ -11,7 +11,7 @@ interface AvatarPickerProps {
 export const AvatarPicker: React.FC<AvatarPickerProps> = ({ selectedAvatarId, onSelectAvatar }) => {
   return (
     <div className="space-y-3">
-      <label className="block text-[10px] font-bold text-[#A3A3A3] uppercase tracking-widest">
+      <label className="block text-[10px] font-bold text-[#B0B0B0] uppercase tracking-widest">
         Escolha seu Avatar Canino (Raça da Matilha)
       </label>
       <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">

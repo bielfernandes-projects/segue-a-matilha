@@ -1,8 +1,8 @@
 import { create } from 'zustand';
-import type { Room, RoomSettings } from '@segue/shared';
-import { apiRequest } from './lib/api';
-import type { Joined, RoomResponse } from './lib/api';
+import type { Room, RoomSettings, Player } from '@segue/shared';
 import { subscribeRoom, unsubscribeRoom } from './lib/realtime';
+import * as session from './lib/session-manager';
+import * as game from './lib/game-actions';
 
 interface GameState {
   room: Room | null;
@@ -15,7 +15,7 @@ interface GameState {
   pendingAnswer: string | null;
 
   setRoom: (room: Room) => void;
-  mergeRoom: (room: Room) => void;
+  mergeRoom: (incoming: Room) => void;
   setConnected: (v: boolean) => void;
   setJudging: (v: boolean) => void;
   setLoadingReveal: (v: boolean) => void;
@@ -36,28 +36,53 @@ interface GameState {
   heartbeat: () => Promise<void>;
 }
 
+function sessionCtx(set: (partial: Partial<GameState>) => void): session.SessionContext {
+  return {
+    setRoom: (room) => set({ room }),
+    setPlayerId: (id) => set({ playerId: id }),
+    setToken: (token) => set({ token }),
+    setError: (error) => set({ error }),
+    setConnected: (connected) => set({ connected }),
+    reset: () => set({ room: null, playerId: null, token: null, connected: false, judging: false, loadingReveal: false, error: '', pendingAnswer: null }),
+  };
+}
+
+function gameCtx(get: () => GameState, set: (partial: Partial<GameState>) => void): game.GameActionContext {
+  return {
+    getCode: () => get().room?.code ?? null,
+    getToken: () => get().token,
+    getPlayerId: () => get().playerId,
+    getRoom: () => get().room,
+    setRoom: (room) => set({ room: room as Room }),
+    setJudging: (v) => set({ judging: v }),
+    setLoadingReveal: (v) => set({ loadingReveal: v }),
+    setError: (msg) => set({ error: msg }),
+    setPendingAnswer: (v) => set({ pendingAnswer: v }),
+    setOptimisticAnswer: (playerId, answer, answeredCount) => {
+      const current = get().room;
+      if (!current) return;
+      set({
+        pendingAnswer: answer,
+        room: {
+          ...current,
+          answeredCount: answeredCount + 1,
+          players: current.players.map((p: Player) =>
+            p.id === playerId ? { ...p, hasAnswered: true, currentAnswer: answer } : p
+          ),
+        },
+      });
+    },
+  };
+}
+
 const TOKEN_KEY = 'segue-matilha-token';
 
-function saveToken(token: string): void {
+function clearStoredToken(): void {
   try {
-    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.removeItem(TOKEN_KEY);
   } catch {
     /* ignore */
   }
-}
-
-export function loadStoredToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function applyJoined(set: (partial: Partial<GameState>) => void, data: RoomResponse, joined: Joined): void {
-  saveToken(joined.token);
-  set({ room: data.room, playerId: joined.playerId, token: joined.token });
-  subscribeRoom(joined.roomCode);
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -71,13 +96,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   pendingAnswer: null,
 
   setRoom: (room) => set({ room }),
+  setConnected: (connected) => set({ connected }),
+  setJudging: (judging) => set({ judging }),
+  setLoadingReveal: (loadingReveal) => set({ loadingReveal }),
+  setError: (error) => set({ error }),
+  clearError: () => set({ error: '' }),
+  reset: () => {
+    clearStoredToken();
+    unsubscribeRoom();
+    set({ room: null, playerId: null, token: null, connected: false, judging: false, loadingReveal: false, error: '', pendingAnswer: null });
+  },
 
-  /**
-   * Merge de snapshots recebidos por broadcast/resync.
-   * Enquanto a resposta do jogador local ainda nao foi confirmada pelo servidor
-   * (pendingAnswer), preserva o estado otimista de hasAnswered/currentAnswer para
-   * que a tela nao "volte para o input" por causa de um broadcast intermediario.
-   */
   mergeRoom: (incoming) => {
     const { playerId, pendingAnswer } = get();
     if (incoming.phase === 'reveal') {
@@ -87,7 +116,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ room: incoming });
       return;
     }
-    const me = incoming.players.find((p) => p.id === playerId);
+    const me = incoming.players.find((p: Player) => p.id === playerId);
     if (!me || me.hasAnswered || incoming.phase !== 'question') {
       set({ room: incoming, pendingAnswer: null });
       return;
@@ -96,185 +125,63 @@ export const useGameStore = create<GameState>((set, get) => ({
       room: {
         ...incoming,
         answeredCount: incoming.answeredCount + 1,
-        players: incoming.players.map((p) =>
+        players: incoming.players.map((p: Player) =>
           p.id === playerId ? { ...p, hasAnswered: true, currentAnswer: pendingAnswer } : p
         ),
       },
     });
   },
 
-  setConnected: (connected) => set({ connected }),
-  setJudging: (judging) => set({ judging }),
-  setLoadingReveal: (loadingReveal) => set({ loadingReveal }),
-  setError: (error) => set({ error }),
-  clearError: () => set({ error: '' }),
-  reset: () => {
-    try {
-      localStorage.removeItem(TOKEN_KEY);
-    } catch {
-      /* ignore */
-    }
-    unsubscribeRoom();
-    set({ room: null, playerId: null, token: null, connected: false, judging: false, loadingReveal: false, error: '', pendingAnswer: null });
-  },
-
   createRoom: async (hostName, avatarId, settings) => {
-    const res = await apiRequest<RoomResponse>('/api/rooms', { body: { hostName, avatarId, settings } });
-    if (res.ok) {
-      applyJoined(set, res.data, res.data.joined!);
-      return { ok: true };
-    }
-    set({ error: res.error });
-    return { ok: false, error: res.error };
+    const ctx = sessionCtx(set);
+    return session.createRoom(ctx, hostName, avatarId, settings);
   },
-
   joinRoom: async (roomCode, playerName, avatarId) => {
-    const code = String(roomCode ?? '').trim().toUpperCase().slice(0, 4);
-    const res = await apiRequest<RoomResponse>(`/api/rooms/${code}/join`, { body: { playerName, avatarId } });
-    if (res.ok) {
-      applyJoined(set, res.data, res.data.joined!);
-      return { ok: true };
-    }
-    // Partida já em andamento: tenta voltar para a sala usando código + nome
-    // (reconecta o perfil existente com o mesmo nome em vez de criar um novo).
-    if (res.code === 'room_started') {
-      const re = await apiRequest<RoomResponse>(`/api/rooms/${code}/rejoin`, { body: { playerName, avatarId } });
-      if (re.ok) {
-        applyJoined(set, re.data, re.data.joined!);
-        return { ok: true };
-      }
-      set({ error: re.error });
-      return { ok: false, error: re.error };
-    }
-    set({ error: res.error });
-    return { ok: false, error: res.error };
+    const ctx = sessionCtx(set);
+    return session.joinRoom(ctx, roomCode, playerName, avatarId);
   },
-
   rejoin: async () => {
-    const token = loadStoredToken();
-    if (!token) {
-      set({ token: null });
-      return { ok: false };
-    }
-    const res = await apiRequest<RoomResponse>('/api/rooms/rejoin', { body: { token } });
-    if (res.ok) {
-      applyJoined(set, res.data, res.data.joined!);
-      return { ok: true };
-    }
-    try {
-      localStorage.removeItem(TOKEN_KEY);
-    } catch {
-      /* ignore */
-    }
-    set({ token: null });
-    return { ok: false };
+    const ctx = sessionCtx(set);
+    return session.rejoin(ctx);
   },
-
   leaveRoom: () => {
     const { room, token } = get();
-    if (room && token) {
-      void apiRequest(`/api/rooms/${room.code}/leave`, { body: { token } });
-    }
-    get().reset();
+    const ctx = sessionCtx(set);
+    session.leaveRoom(ctx, room, token);
   },
-
   startGame: async () => {
-    const { room, token } = get();
-    if (!room || !token) return { ok: false };
-    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/start`, { body: { token } });
-    if (res.ok) {
-      set({ room: res.data.room, error: '' });
-      return { ok: true };
-    }
-    set({ error: res.error });
-    return { ok: false, error: res.error };
+    const ctx = gameCtx(get, set);
+    const ok = await game.startGame(ctx);
+    return { ok, error: ok ? undefined : get().error };
   },
-
   submitAnswer: async (answer) => {
-    const { room, token, playerId } = get();
-    if (!room || !token || !playerId) return { ok: false };
-    if (room.players.some((p) => p.id === playerId && p.hasAnswered)) return { ok: true };
-    set({
-      pendingAnswer: answer,
-      room: {
-        ...room,
-        answeredCount: room.answeredCount + 1,
-        players: room.players.map((p) =>
-          p.id === playerId ? { ...p, hasAnswered: true, currentAnswer: answer } : p
-        ),
-      },
-    });
-    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/answer`, { body: { token, answer } });
-    if (res.ok) {
-      const nextRoom = res.data.room;
-      if (nextRoom.phase === 'reveal') {
-        set({ loadingReveal: true });
-      }
-      set({ room: nextRoom, error: '', judging: false, pendingAnswer: null });
-      return { ok: true };
-    }
-    set({ error: res.error, pendingAnswer: null });
-    return { ok: false, error: res.error };
+    const ctx = gameCtx(get, set);
+    const ok = await game.submitAnswer(ctx, answer);
+    return { ok, error: ok ? undefined : get().error };
   },
-
   forceReveal: async () => {
-    const { room, token } = get();
-    if (!room || !token) return { ok: false };
-    set({ loadingReveal: true });
-    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/reveal`, { body: { token, force: true } });
-    if (res.ok) {
-      set({ room: res.data.room, error: '', loadingReveal: false });
-      return { ok: true };
-    }
-    set({ error: res.error, loadingReveal: false });
-    return { ok: false, error: res.error };
+    const ctx = gameCtx(get, set);
+    const ok = await game.forceReveal(ctx);
+    return { ok, error: ok ? undefined : get().error };
   },
-
   autoReveal: async () => {
-    const { room, token } = get();
-    if (!room || !token) return { ok: false };
-    set({ loadingReveal: true });
-    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/reveal`, { body: { token } });
-    if (res.ok) {
-      set({ room: res.data.room, loadingReveal: false });
-      return { ok: true };
-    }
-    if (res.error !== 'O tempo ainda não acabou.') set({ error: res.error });
-    set({ loadingReveal: false });
-    return { ok: false, error: res.error };
+    const ctx = gameCtx(get, set);
+    const ok = await game.autoReveal(ctx);
+    return { ok, error: ok ? undefined : get().error };
   },
-
   nextStep: async () => {
-    const { room, token } = get();
-    if (!room || !token) return { ok: false };
-    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/next`, { body: { token } });
-    if (res.ok) {
-      set({ room: res.data.room, error: '' });
-      return { ok: true };
-    }
-    set({ error: res.error });
-    return { ok: false, error: res.error };
+    const ctx = gameCtx(get, set);
+    const ok = await game.nextStep(ctx);
+    return { ok, error: ok ? undefined : get().error };
   },
-
   playAgain: async () => {
-    const { room, token } = get();
-    if (!room || !token) return { ok: false };
-    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/play-again`, { body: { token } });
-    if (res.ok) {
-      set({ room: res.data.room, error: '' });
-      return { ok: true };
-    }
-    set({ error: res.error });
-    return { ok: false, error: res.error };
+    const ctx = gameCtx(get, set);
+    const ok = await game.playAgain(ctx);
+    return { ok, error: ok ? undefined : get().error };
   },
-
   heartbeat: async () => {
     const { room, token } = get();
-    if (!room || !token) return;
-    const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/heartbeat`, { body: { token } });
-    if (res.ok) {
-      get().mergeRoom(res.data.room);
-      set({ connected: true });
-    }
+    const ctx = sessionCtx(set);
+    await session.heartbeat(ctx, room, token);
   },
 }));

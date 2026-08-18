@@ -41,7 +41,7 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
         <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tighter italic text-[#FEFAE0]">
           Pódio dos Campeões
         </h1>
-        <p className="text-xs text-[#A3A3A3] font-medium">
+        <p className="text-xs text-[#B0B0B0] font-medium">
           {hasTie
             ? 'Empate perfeito no topo! Os co-vencedores dividem o trono. 🐾'
             : 'Partida finalizada! Confira os grandes vencedores da sintonia canina.'}
@@ -95,7 +95,7 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
         {third && (
           <div className="flex flex-col items-center flex-1 order-3">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#05070A] border-4 border-[#2D3139] shadow-xl flex items-center justify-center relative mb-2">
-              <span className="absolute -top-3 bg-[#11161D] text-[#A3A3A3] text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#2D3139]">
+              <span className="absolute -top-3 bg-[#11161D] text-[#B0B0B0] text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#2D3139]">
                 🥉 3º Lugar
               </span>
               <DogAvatar avatarId={third.avatarId} size={44} />
@@ -106,7 +106,7 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
             <span className="font-mono text-xs font-bold text-[#DDA15E]">{third.score} pts</span>
 
             <div className="w-full h-20 sm:h-24 bg-[#0A0E14] border-t-2 border-[#2D3139] rounded-t-xl flex items-center justify-center mt-2 shadow-inner">
-              <span className="text-2xl font-black text-[#A3A3A3]">3</span>
+              <span className="text-2xl font-black text-[#B0B0B0]">3</span>
             </div>
           </div>
         )}
@@ -131,7 +131,7 @@ export const PodiumScreen: React.FC<PodiumScreenProps> = ({
                   {p.id === currentPlayerId && <span className="text-[9px] font-bold text-[#DDA15E] uppercase">(Você)</span>}
                 </div>
 
-                <div className="flex items-center gap-4 text-[#A3A3A3] font-medium">
+                <div className="flex items-center gap-4 text-[#B0B0B0] font-medium">
                   <span title="Matilhas (2 pts)">🏆 {majorityCount}</span>
                   <span title="Lobos Solitários (0 pts)">🐺 {p.loneWolfCount}</span>
                   <span title="Melhor sequência">🔥 {p.bestStreak}</span>

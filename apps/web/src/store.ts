@@ -10,6 +10,7 @@ interface GameState {
   token: string | null;
   connected: boolean;
   judging: boolean;
+  loadingReveal: boolean;
   error: string;
   pendingAnswer: string | null;
 
@@ -17,6 +18,7 @@ interface GameState {
   mergeRoom: (room: Room) => void;
   setConnected: (v: boolean) => void;
   setJudging: (v: boolean) => void;
+  setLoadingReveal: (v: boolean) => void;
   setError: (msg: string) => void;
   clearError: () => void;
   reset: () => void;
@@ -64,6 +66,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   token: null,
   connected: false,
   judging: false,
+  loadingReveal: false,
   error: '',
   pendingAnswer: null,
 
@@ -77,6 +80,9 @@ export const useGameStore = create<GameState>((set, get) => ({
    */
   mergeRoom: (incoming) => {
     const { playerId, pendingAnswer } = get();
+    if (incoming.phase === 'reveal') {
+      set({ loadingReveal: false });
+    }
     if (!pendingAnswer || !playerId) {
       set({ room: incoming });
       return;
@@ -99,6 +105,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setConnected: (connected) => set({ connected }),
   setJudging: (judging) => set({ judging }),
+  setLoadingReveal: (loadingReveal) => set({ loadingReveal }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: '' }),
   reset: () => {
@@ -108,7 +115,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       /* ignore */
     }
     unsubscribeRoom();
-    set({ room: null, playerId: null, token: null, connected: false, judging: false, error: '', pendingAnswer: null });
+    set({ room: null, playerId: null, token: null, connected: false, judging: false, loadingReveal: false, error: '', pendingAnswer: null });
   },
 
   createRoom: async (hostName, avatarId, settings) => {
@@ -199,7 +206,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
     const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/answer`, { body: { token, answer } });
     if (res.ok) {
-      set({ room: res.data.room, error: '', judging: false, pendingAnswer: null });
+      const nextRoom = res.data.room;
+      if (nextRoom.phase === 'reveal') {
+        set({ loadingReveal: true });
+      }
+      set({ room: nextRoom, error: '', judging: false, pendingAnswer: null });
       return { ok: true };
     }
     set({ error: res.error, pendingAnswer: null });
@@ -209,24 +220,27 @@ export const useGameStore = create<GameState>((set, get) => ({
   forceReveal: async () => {
     const { room, token } = get();
     if (!room || !token) return { ok: false };
+    set({ loadingReveal: true });
     const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/reveal`, { body: { token, force: true } });
     if (res.ok) {
-      set({ room: res.data.room, error: '' });
+      set({ room: res.data.room, error: '', loadingReveal: false });
       return { ok: true };
     }
-    set({ error: res.error });
+    set({ error: res.error, loadingReveal: false });
     return { ok: false, error: res.error };
   },
 
   autoReveal: async () => {
     const { room, token } = get();
     if (!room || !token) return { ok: false };
+    set({ loadingReveal: true });
     const res = await apiRequest<RoomResponse>(`/api/rooms/${room.code}/reveal`, { body: { token } });
     if (res.ok) {
-      set({ room: res.data.room });
+      set({ room: res.data.room, loadingReveal: false });
       return { ok: true };
     }
     if (res.error !== 'O tempo ainda não acabou.') set({ error: res.error });
+    set({ loadingReveal: false });
     return { ok: false, error: res.error };
   },
 

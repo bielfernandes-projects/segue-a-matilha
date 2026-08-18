@@ -75,6 +75,11 @@ export interface RoundReveal {
   statusByPlayer: PlayerStatus[];
 }
 
+export interface ClusterInput {
+  rotulo: string;
+  respostas: string[];
+}
+
 export interface Room {
   code: string;
   phase: Phase;

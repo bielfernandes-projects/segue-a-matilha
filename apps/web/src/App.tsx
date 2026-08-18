@@ -137,7 +137,6 @@ export default function App() {
             onSubmitAnswer={(answer) => { void submitAnswer(answer); }}
             onHostForceReveal={() => { void forceReveal(); }}
             onAutoReveal={() => { void autoReveal(); }}
-            judging={judging}
           />
         );
       case 'reveal':

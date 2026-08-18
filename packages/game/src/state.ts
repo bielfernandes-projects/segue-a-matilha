@@ -1,6 +1,7 @@
 import { LIMITS, getAvatarColor } from '@segue/shared';
 import type {
   AnswerStatus,
+  ClusterInput,
   Phase,
   Player,
   PlayerStatus,
@@ -479,5 +480,90 @@ export function buildPublicRoom(room: GameRoom, viewerId?: string): Room {
     createdAt: room.createdAt,
     updatedAt: room.updatedAt,
     pausedReason: room.pausedReason,
+    usedQuestionIds: room.usedQuestionIds,
+    recentlyUsedQuestionIds: room.recentlyUsedQuestionIds,
   };
+}
+
+export function considerClustersState(
+  state: GameRoom,
+  playerId: string,
+  clustersInput: ClusterInput[]
+): RoundReveal | null {
+  if (state.hostId !== playerId) throw new GameError('Apenas o Host pode corrigir.', 'forbidden');
+  if (state.phase !== 'reveal') throw new GameError('Não está na fase de revelação.', 'bad_phase');
+  if (!state.reveal) throw new GameError('Não há revelação para corrigir.', 'bad_phase');
+
+  const allAnswers = state.reveal.clusters.flatMap((c) => c.respostas);
+  const answerMap = new Map(allAnswers.map((a) => [a.playerId, a]));
+
+  const usedPlayerIds = new Set<string>();
+  const clusters: { rotulo: string; respostas: RevealAnswer[] }[] = [];
+
+  for (const input of clustersInput) {
+    const respostas: RevealAnswer[] = [];
+    for (const text of input.respostas) {
+      const match = allAnswers.find((a) => a.text === text && !usedPlayerIds.has(a.playerId));
+      if (match) {
+        respostas.push(match);
+        usedPlayerIds.add(match.playerId);
+      }
+    }
+    if (respostas.length > 0) {
+      clusters.push({ rotulo: input.rotulo, respostas });
+    }
+  }
+
+  for (const a of allAnswers) {
+    if (!usedPlayerIds.has(a.playerId)) {
+      clusters.push({ rotulo: a.text, respostas: [a] });
+      usedPlayerIds.add(a.playerId);
+    }
+  }
+
+  const scored = scoreClusters(clusters);
+
+  const pointsByPlayer = new Map<string, number>();
+  for (const c of scored) {
+    for (const r of c.respostas) pointsByPlayer.set(r.playerId, c.points);
+  }
+
+  for (const p of state.players) {
+    const prevPoints = p.roundScores[p.roundScores.length - 1] ?? 0;
+    p.score -= prevPoints;
+    p.roundScores.pop();
+    if (p.loneWolfCount > 0 && prevPoints === 0) p.loneWolfCount--;
+    if (p.perdidosCount > 0 && prevPoints === 1) p.perdidosCount--;
+    if (p.streak > 0 && prevPoints === 2) {
+      p.streak--;
+      if (p.bestStreak > p.streak) p.bestStreak = p.streak;
+    }
+  }
+
+  const statusByPlayer: PlayerStatus[] = state.players.map((p) => {
+    const answeredNow = pointsByPlayer.has(p.id);
+    const status: AnswerStatus = answeredNow ? 'answered' : p.connected ? 'no_answer' : 'disconnected';
+    const points = pointsByPlayer.get(p.id) ?? LIMITS.POINTS_LOBO;
+    applyRoundScore(p, points);
+    return {
+      playerId: p.id,
+      playerName: p.name,
+      avatarId: p.avatarId,
+      color: p.color,
+      status,
+    };
+  });
+
+  const reveal: RoundReveal = {
+    roundNumber: state.reveal.roundNumber,
+    question: state.reveal.question,
+    clusters: scored,
+    offline: state.reveal.offline,
+    statusByPlayer,
+  };
+  state.reveal = reveal;
+  state.roundHistory[state.roundHistory.length - 1] = reveal;
+  state.updatedAt = Date.now();
+
+  return reveal;
 }

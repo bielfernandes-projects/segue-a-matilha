@@ -140,7 +140,7 @@ describe('buildRanking', () => {
 
 describe('isGameOver', () => {
   function room(settings: Room['settings'], currentRound: number, players: Player[]): Room {
-    return { code: 'ABCD', phase: 'leaderboard', hostId: 'a', settings, players, currentRound, answeredCount: 0, roundHistory: [], createdAt: 0, updatedAt: 0 };
+    return { code: 'ABCD', phase: 'leaderboard', hostId: 'a', settings, players, currentRound, answeredCount: 0, roundHistory: [], createdAt: 0, updatedAt: 0, usedQuestionIds: [], recentlyUsedQuestionIds: [] };
   }
 
   it('modo rounds termina ao atingir totalRounds', () => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, Clock, CheckCircle2, Dog, Lock } from 'lucide-react';
+import { Clock, CheckCircle2, Lock, Dog } from 'lucide-react';
 import type { Room } from '@segue/shared';
 import { DogAvatar } from './DogAvatar';
 
@@ -10,7 +10,6 @@ interface QuestionScreenProps {
   onHostForceReveal?: () => void;
   onAutoReveal?: () => void;
   isLoading?: boolean;
-  judging?: boolean;
 }
 
 export const QuestionScreen: React.FC<QuestionScreenProps> = ({
@@ -20,7 +19,6 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
   onHostForceReveal,
   onAutoReveal,
   isLoading = false,
-  judging = false,
 }) => {
   const [answerInput, setAnswerInput] = useState('');
   const didAutoReveal = useRef(false);
@@ -66,15 +64,6 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
 
   return (
     <div className="min-h-[calc(100vh-80px)] p-4 sm:p-6 max-w-3xl mx-auto space-y-6 flex flex-col justify-between">
-      {judging && (
-        <div className="fixed inset-0 z-[70] bg-[#05070A]/85 backdrop-blur-sm flex flex-col items-center justify-center gap-4 px-6 text-center">
-          <div className="w-16 h-16 rounded-full border-4 border-[#DDA15E]/30 border-t-[#DDA15E] animate-spin" />
-          <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight italic text-[#FEFAE0]">
-            IA fazendo a contagem...
-          </h3>
-          <p className="text-sm text-[#A3A3A3] font-medium">Agrupando as respostas do bando...</p>
-        </div>
-      )}
       {/* Top Round Bar & Timer */}
       <div className="flex items-center justify-between bg-[#0A0E14] border border-[#2D3139] rounded-2xl px-5 py-4 shadow-xl">
         <div className="flex items-center gap-2">

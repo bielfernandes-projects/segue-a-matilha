@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import express from 'express';
 import type { Request, Response } from 'express';
 import { SERVER_EVENTS } from '@segue/shared';
-import type { QuestionStatus, RoomSettings } from '@segue/shared';
+import type { QuestionStatus, RoomSettings, ClusterInput } from '@segue/shared';
 import { isGameOver } from '@segue/shared';
 import { config } from './config';
 import {
@@ -26,6 +26,7 @@ import {
 import {
   buildPublicRoom,
   CONNECTED_STALE_MS,
+  considerClustersState,
   createRoomState,
   GameError,
   joinRoomState,
@@ -390,6 +391,27 @@ export function buildApp(): express.Express {
       if (result.result === true) {
         await broadcastNamed(code, SERVER_EVENTS.REVEAL, publicRoom);
       }
+      await broadcastRoomState(code, publicRoom);
+      res.json({ ok: true, room: publicRoom });
+    } catch (e) {
+      err(res, e);
+    }
+  });
+
+  app.post('/api/rooms/:code/consider', async (req, res) => {
+    try {
+      const session = await requireSession(req);
+      const code = roomCodeOf(req, session);
+      const clustersInput = req.body?.clusters as ClusterInput[] | undefined;
+      if (!clustersInput || !Array.isArray(clustersInput)) {
+        throw new GameError('Clusters inválidos.', 'bad_input');
+      }
+      const result = await withRoom(code, (state) => {
+        return considerClustersState(state, session.playerId, clustersInput);
+      });
+      if (!result) throw new GameError('Sala não encontrada.', 'room_not_found');
+      const publicRoom = buildPublicRoom(result.state, session.playerId);
+      await broadcastNamed(code, SERVER_EVENTS.REVEAL, publicRoom);
       await broadcastRoomState(code, publicRoom);
       res.json({ ok: true, room: publicRoom });
     } catch (e) {

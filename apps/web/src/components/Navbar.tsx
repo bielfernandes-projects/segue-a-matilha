@@ -1,5 +1,7 @@
 import React from 'react';
-import { Shield, HelpCircle, MessageSquarePlus, QrCode, LogOut } from 'lucide-react';
+import { Shield, HelpCircle, MessageSquarePlus, QrCode, LogOut, RotateCcw, Wifi, WifiOff } from 'lucide-react';
+import { useGameStore } from '../store';
+import { apiRequest } from '../lib/api';
 
 interface NavbarProps {
   roomCode?: string;
@@ -10,6 +12,58 @@ interface NavbarProps {
   onOpenQR?: () => void;
   onLeaveRoom?: () => void;
 }
+
+// Manual refresh button component
+const RefreshButton: React.FC<{ roomCode: string; connected?: boolean; token: string | null }> = ({
+  roomCode,
+  connected = false,
+  token,
+}) => {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [lastRefreshed, setLastRefreshed] = React.useState<number | null>(null);
+
+  const handleRefresh = async () => {
+    if (!token || !connected) return;
+    setRefreshing(true);
+    try {
+      const res = await fetch(`/api/rooms/${roomCode}/state?token=${encodeURIComponent(token)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.room) {
+          useGameStore.getState().setRoom(data.room);
+          setLastRefreshed(Date.now());
+        }
+      }
+    } catch (e) {
+      console.error('Manual refresh failed:', e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleRefresh}
+      disabled={refreshing || !connected || !token}
+      className={`p-1.5 rounded-lg transition-all border ${
+        refreshing
+          ? 'bg-[#DDA15E] text-[#05070A] animate-spin'
+          : connected
+          ? 'text-[#DDA15E] hover:text-[#FEFAE0] hover:bg-[#11161D] border-[#2D3139]'
+          : 'text-[#B0B0B0] border-[#2D3139] opacity-50 cursor-not-allowed'
+      }`}
+      title={refreshing ? 'Atualizando...' : connected ? 'Forçar atualização do estado' : 'Desconectado'}
+    >
+      {refreshing ? (
+        <RotateCcw className="w-4 h-4" />
+      ) : connected ? (
+        <Wifi className="w-4 h-4" />
+      ) : (
+        <WifiOff className="w-4 h-4" />
+      )}
+    </button>
+  );
+};
 
 export const Navbar: React.FC<NavbarProps> = ({
   roomCode,
@@ -61,6 +115,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <QrCode className="w-4 h-4" />
               </button>
             )}
+            <RefreshButton roomCode={roomCode} connected={connected} token={useGameStore.getState().token} />
           </div>
         )}
 

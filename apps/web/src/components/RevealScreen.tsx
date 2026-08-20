@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowRight, WifiOff, Gavel, X, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowRight, WifiOff, Gavel, X, Check, RotateCcw } from 'lucide-react';
 import type { Room } from '@segue/shared';
 import { useGameStore } from '../store';
 import { apiRequest } from '../lib/api';
@@ -25,6 +25,29 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
   const loadingReveal = useGameStore((s) => s.loadingReveal);
   const setLoadingReveal = useGameStore((s) => s.setLoadingReveal);
   const [showContestarModal, setShowContestarModal] = useState(false);
+  const fetchAttempted = useRef(false);
+
+  // If we're in reveal phase but no result yet, trigger a fallback fetch after 3 seconds
+  useEffect(() => {
+    if (room.phase === 'reveal' && (!result || !result.clusters) && !fetchAttempted.current) {
+      const timer = setTimeout(() => {
+        fetchAttempted.current = true;
+        console.log('[RevealScreen] Timeout waiting for reveal data, fetching room state...');
+        const token = useGameStore.getState().token;
+        if (token) {
+          apiRequest<{ ok: boolean; room: Room }>(
+            `/api/rooms/${room.code}/state?token=${encodeURIComponent(token)}`,
+            { method: 'GET' }
+          ).then((res) => {
+            if (res.ok && res.data) {
+              useGameStore.getState().setRoom(res.data.room);
+            }
+          });
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [room.phase, result, room.code]);
 
   if (loadingReveal) {
     return (

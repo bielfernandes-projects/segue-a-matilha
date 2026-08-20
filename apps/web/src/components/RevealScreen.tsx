@@ -128,7 +128,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
           <div
             className="drop-zone border-2 border-dashed border-[#DDA15E]/50 rounded-xl p-3 min-h-[60px] bg-[#0A0E14]/50"
             onDragOver={drag.onDragOver}
-            onDrop={drag.onDropToNewCluster()}
+            onDrop={drag.onDropToNewCluster}
           >
             <p className="text-center text-[11px] text-[#DDA15E]/50 italic">Solte aqui para criar novo grupo</p>
           </div>
@@ -199,7 +199,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
               <div
                 className="drop-zone border-2 border-dashed border-[#DDA15E]/50 rounded-lg p-3 min-h-[50px] bg-[#0A0E14]/50"
                 onDragOver={drag.onDragOver}
-                onDrop={drag.onDropToNewCluster()}
+onDrop={drag.onDropToNewCluster}
               >
                 <p className="text-center text-[11px] text-[#DDA15E]/50 italic">Solte aqui para criar novo grupo</p>
               </div>

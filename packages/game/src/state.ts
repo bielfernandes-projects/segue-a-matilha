@@ -296,6 +296,65 @@ export async function forceRevealState(state: GameRoom, playerId: string): Promi
   return processRevealState(state);
 }
 
+/**
+ * Inicia o processo de revelação de forma assíncrona.
+ * Define phase='reveal' e retorna imediatamente.
+ * O processamento da IA roda em background e faz broadcast quando termina.
+ */
+export function startRevealProcess(state: GameRoom): void {
+  if (!isQuestionPhase(state)) return;
+  
+  // Marca a fase ANTES do await para evitar processamento duplicado.
+  state.phase = 'reveal';
+  state.prevPhase = undefined;
+  state.pausedReason = undefined;
+  state.updatedAt = Date.now();
+}
+
+/**
+ * Processa a revelação de forma assíncrona (fire-and-forget).
+ * Roda o judge em background e faz broadcast quando termina.
+ */
+export async function asyncProcessReveal(
+  code: string,
+  judge: JudgeFn = groupAnswers
+): Promise<void> {
+  const { getSupabase } = await import('./persistence');
+  const { broadcastRoomState, broadcastRoom } = await import('./realtime');
+  const { SERVER_EVENTS } = await import('@segue/shared');
+  const { buildPublicRoom } = await import('./state');
+  
+  // Re-lê a sala para pegar o estado atual
+  const { readRoom, writeRoom } = await import('./persistence');
+  
+  let retries = 3;
+  while (retries > 0) {
+    const ref = await readRoom(code);
+    if (!ref) return;
+    
+    // Verifica se ainda está na fase de revelação e sem reveal processado
+    if (ref.state.phase !== 'reveal' || ref.state.reveal) {
+      return; // Já processado ou fase mudou
+    }
+    
+    // Processa a revelação (chama a IA)
+    await processRevealState(ref.state, judge);
+    
+    // Tenta persistir
+    if (await writeRoom(ref, Date.now())) {
+      // Sucesso - broadcast do resultado
+      const publicRoom = buildPublicRoom(ref.state);
+      await broadcastRoom(code, SERVER_EVENTS.REVEAL, { room: publicRoom });
+      await broadcastRoomState(code, publicRoom);
+      return;
+    }
+    
+    retries--;
+    // Pequeno delay antes de retry
+    await new Promise(r => setTimeout(r, 50));
+  }
+}
+
 export function nextStepState(state: GameRoom, playerId: string, pool: Question[]): void {
   if (state.hostId !== playerId) throw new GameError('Apenas o Host pode avançar.', 'forbidden');
 

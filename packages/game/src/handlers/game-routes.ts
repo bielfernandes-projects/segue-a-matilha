@@ -10,6 +10,8 @@ import {
   nextStepState,
   playAgainState,
   considerClustersState,
+  startRevealProcess,
+  asyncProcessReveal,
 } from '../state';
 import { withRoom, getApprovedQuestions } from '../persistence';
 import { broadcastRoom, broadcastRoomState } from '../realtime';
@@ -51,8 +53,8 @@ gameRoutes.post('/rooms/:code/answer', async (req, res) => {
       const player = state.players.find((p) => p.id === session.playerId);
       if (player) player.lastSeenAt = now;
       if (needsReveal) {
-        await broadcastNamed(code, SERVER_EVENTS.JUDGING, buildPublicRoom(state, session.playerId));
-        await processRevealState(state);
+        // Inicia revelação assíncrona
+        startRevealProcess(state);
         return 'revealed';
       }
       return 'ok';
@@ -60,9 +62,11 @@ gameRoutes.post('/rooms/:code/answer', async (req, res) => {
     if (!result) throw new GameError('Sala não encontrada.', 'room_not_found');
     const publicRoom = buildPublicRoom(result.state, session.playerId);
     if (result.result === 'revealed') {
-      await broadcastNamed(code, SERVER_EVENTS.REVEAL, publicRoom);
+      await broadcastNamed(code, SERVER_EVENTS.JUDGING, publicRoom);
+      await broadcastRoomState(code, publicRoom);
+      // Fire-and-forget
+      asyncProcessReveal(code).catch(console.error);
     }
-    await broadcastRoomState(code, publicRoom);
     res.json({ ok: true, room: publicRoom });
   } catch (e) {
     err(res, e);
@@ -84,17 +88,22 @@ gameRoutes.post('/rooms/:code/reveal', async (req, res) => {
       if (!force && !deadlinePassed) throw new GameError('O tempo ainda não acabou.', 'too_early');
       if (force && !player.isHost) throw new GameError('Apenas o Host pode revelar agora.', 'forbidden');
       player.lastSeenAt = now;
-      await broadcastNamed(code, SERVER_EVENTS.JUDGING, buildPublicRoom(state, session.playerId));
-      await processRevealState(state);
+      // Inicia revelação assíncrona - só muda a fase, não processa a IA ainda
+      startRevealProcess(state);
       return true;
     });
     if (!result) throw new GameError('Sala não encontrada.', 'room_not_found');
+    
+    // Broadcast imediato do estado "judging"
     const publicRoom = buildPublicRoom(result.state, session.playerId);
-    if (result.result === true) {
-      await broadcastNamed(code, SERVER_EVENTS.REVEAL, publicRoom);
-    }
+    await broadcastNamed(code, SERVER_EVENTS.JUDGING, publicRoom);
     await broadcastRoomState(code, publicRoom);
-    res.json({ ok: true, room: publicRoom });
+    
+    // Retorna resposta IMEDIATA para o host
+    res.json({ ok: true, room: publicRoom, judging: true });
+    
+    // Fire-and-forget: processa a IA em background
+    asyncProcessReveal(code).catch(console.error);
   } catch (e) {
     err(res, e);
   }

@@ -7,6 +7,31 @@ import { isDuplicateText, questionKey } from './questions';
 import { GameError, reapStale } from './state';
 import type { GameRoom } from './state';
 
+// In-memory cache for approved questions
+const QUESTIONS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+let questionsCache: { data: Question[]; expiresAt: number } | null = null;
+
+async function getCachedApprovedQuestions(): Promise<Question[]> {
+  const now = Date.now();
+  if (questionsCache && now < questionsCache.expiresAt) {
+    return questionsCache.data;
+  }
+  const data = await getApprovedQuestionsFromDB();
+  questionsCache = { data, expiresAt: now + QUESTIONS_CACHE_TTL_MS };
+  return data;
+}
+
+async function getApprovedQuestionsFromDB(): Promise<Question[]> {
+  const { data, error } = await getSupabase()
+    .from('questions')
+    .select('*')
+    .eq('status', 'approved')
+    .order('created_at', { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []).map(toQuestion);
+}
+
 export type QuestionRow = {
   id: string;
   text: string;
@@ -128,14 +153,11 @@ export async function listQuestions(status?: QuestionStatus): Promise<Question[]
 }
 
 export async function getApprovedQuestions(): Promise<Question[]> {
-  const { data, error } = await getSupabase()
-    .from('questions')
-    .select('*')
-    .eq('status', 'approved')
-    .order('created_at', { ascending: false })
-    .limit(1000);
-  if (error) throw error;
-  return (data ?? []).map(toQuestion);
+  return getCachedApprovedQuestions();
+}
+
+export function invalidateQuestionsCache(): void {
+  questionsCache = null;
 }
 
 /** True se ja existe pergunta com o mesmo texto normalizado (qualquer status). */
@@ -162,17 +184,20 @@ export async function insertQuestion(input: {
   };
   const { error } = await getSupabase().from('questions').insert(row);
   if (error) throw error;
+  invalidateQuestionsCache();
   return toQuestion(row);
 }
 
 export async function updateQuestionStatus(id: string, status: QuestionStatus): Promise<void> {
   const { error } = await getSupabase().from('questions').update({ status }).eq('id', id);
   if (error) throw error;
+  invalidateQuestionsCache();
 }
 
 export async function deleteQuestion(id: string): Promise<void> {
   const { error } = await getSupabase().from('questions').delete().eq('id', id);
   if (error) throw error;
+  invalidateQuestionsCache();
 }
 
 // ---------------------------------------------------------------------------

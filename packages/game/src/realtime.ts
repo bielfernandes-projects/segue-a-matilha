@@ -55,7 +55,7 @@ export async function broadcastRoom(
     if (channel.state !== 'joined' && channel.state !== 'joining') {
       await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('realtime_timeout')), BROADCAST_TIMEOUT_MS);
-        channel.subscribe((status, err) => {
+        channel.subscribe((status: string, err: Error | null) => {
           if (status === 'SUBSCRIBED') {
             clearTimeout(timer);
             resolve();

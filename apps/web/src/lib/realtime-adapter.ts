@@ -26,6 +26,8 @@ export class RealtimeAdapter {
   private channel: RealtimeChannel | null = null;
   private fallbackTimer: number | null = null;
   private callbacks: RealtimeCallbacks;
+  private lastBroadcastTime = 0;
+  private broadcastLatencies: number[] = [];
 
   constructor(callbacks: RealtimeCallbacks) {
     this.callbacks = callbacks;
@@ -54,14 +56,16 @@ export class RealtimeAdapter {
   private startFallback(code: string): void {
     this.clearFallback();
     const poll = async () => {
+      const startTime = performance.now();
       const { token } = this.callbacks.getState();
       if (!token) return;
       const res = await this.callbacks.apiRequest(
         `/api/rooms/${code}/state?token=${encodeURIComponent(token)}`,
         { method: 'GET' }
       );
+      const duration = performance.now() - startTime;
+      console.log(`[PERF] Fallback poll ${code} → ${res.ok ? 'OK' : 'ERR'} (${duration.toFixed(0)}ms)`);
       if (res.ok && res.data) {
-        console.log('[FALLBACK] API ok, merging room');
         this.callbacks.mergeRoom(res.data);
       } else if (res.ok && !res.data) {
         console.log('[FALLBACK] API ok but no data');
@@ -82,15 +86,23 @@ export class RealtimeAdapter {
     this.channel
       .on('broadcast', { event: SERVER_EVENTS.ROOM_STATE }, ({ payload }: BroadcastPayload) => {
         if (payload?.room) {
-          console.log('[REALTIME] ROOM_STATE broadcast received');
+          const now = performance.now();
+          const latency = now - this.lastBroadcastTime;
+          this.broadcastLatencies.push(latency);
+          if (this.broadcastLatencies.length > 50) this.broadcastLatencies.shift();
+          const avgLatency = this.broadcastLatencies.reduce((a, b) => a + b, 0) / this.broadcastLatencies.length;
+          console.log(`[PERF] REALTIME ROOM_STATE received (latency: ${latency.toFixed(0)}ms, avg: ${avgLatency.toFixed(0)}ms)`);
+          this.lastBroadcastTime = now;
           this.callbacks.setConnected(true);
           this.callbacks.mergeRoom(payload.room);
         }
       })
       .on('broadcast', { event: SERVER_EVENTS.JUDGING }, ({ payload }: BroadcastPayload) => {
+        console.log('[PERF] REALTIME JUDGING broadcast received');
         if (payload?.room) this.callbacks.onJudging(payload.room);
       })
       .on('broadcast', { event: SERVER_EVENTS.REVEAL }, () => {
+        console.log('[PERF] REALTIME REVEAL broadcast received');
         this.callbacks.onReveal();
       })
       .on('broadcast', { event: SERVER_EVENTS.GAME_OVER }, () => {

@@ -28,6 +28,7 @@ export async function apiRequest<T>(
   path: string,
   options: { method?: string; body?: unknown } = {}
 ): Promise<ApiResult<T>> {
+  const startTime = performance.now();
   try {
     const res = await fetch(path, {
       method: options.method ?? 'POST',
@@ -38,6 +39,8 @@ export async function apiRequest<T>(
       ok?: boolean;
       error?: { message?: string; code?: string } | string;
     } & T;
+    const duration = performance.now() - startTime;
+    console.log(`[PERF] API ${options.method ?? 'POST'} ${path} → ${res.ok ? 'OK' : 'ERR'} (${duration.toFixed(0)}ms)`);
     if (!res.ok || data.ok === false) {
       const err = data.error;
       const message = typeof err === 'string' ? err : (err?.message ?? 'Erro inesperado.');
@@ -45,7 +48,9 @@ export async function apiRequest<T>(
       return { ok: false, error: message, code };
     }
     return { ok: true, data };
-  } catch {
+  } catch (e) {
+    const duration = performance.now() - startTime;
+    console.error(`[PERF] API ${options.method ?? 'POST'} ${path} → EXCEPTION (${duration.toFixed(0)}ms)`, e);
     return { ok: false, error: 'Sem conexão com o servidor.' };
   }
 }

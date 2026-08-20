@@ -199,6 +199,7 @@ export async function processRevealState(
   state: GameRoom,
   judge: JudgeFn = groupAnswers
 ): Promise<RoundReveal | null> {
+  const t0 = Date.now();
   if (!isQuestionPhase(state)) return null;
 
   // Marca a fase ANTES do await para evitar processamento duplicado.
@@ -216,7 +217,9 @@ export async function processRevealState(
     text: p.currentAnswer as string,
   }));
 
+  const tJudge = Date.now();
   const judged = await judge(state.question?.text ?? '', answers.map((a) => a.text));
+  console.log(`[PERF] processRevealState - judge took ${Date.now() - tJudge}ms for ${answers.length} answers`);
 
   // Pool indexado por questionKey (normalizado: lowercase + sem acentos + sem pontuação + singular)
   const pool = new Map<string, RevealAnswer[]>();
@@ -288,6 +291,7 @@ export async function processRevealState(
   if (state.roundHistory.length > HISTORY_LIMIT) state.roundHistory.shift();
 
   removeAbsentState(state);
+  console.log(`[PERF] processRevealState - total ${Date.now() - t0}ms`);
   return reveal;
 }
 
@@ -319,6 +323,7 @@ export async function asyncProcessReveal(
   code: string,
   judge: JudgeFn = groupAnswers
 ): Promise<void> {
+  const t0 = Date.now();
   const { getSupabase } = await import('./persistence');
   const { broadcastRoomState, broadcastRoom } = await import('./realtime');
   const { SERVER_EVENTS } = await import('@segue/shared');
@@ -334,11 +339,14 @@ export async function asyncProcessReveal(
     
     // Verifica se ainda está na fase de revelação e sem reveal processado
     if (ref.state.phase !== 'reveal' || ref.state.reveal) {
+      console.log(`[PERF] asyncProcessReveal ${code} - early exit: phase=${ref.state?.phase}, hasReveal=${!!ref.state?.reveal}`);
       return; // Já processado ou fase mudou
     }
     
     // Processa a revelação (chama a IA)
+    const tJudge = Date.now();
     await processRevealState(ref.state, judge);
+    console.log(`[PERF] asyncProcessReveal ${code} - judge took ${Date.now() - tJudge}ms`);
     
     // Tenta persistir
     if (await writeRoom(ref, Date.now())) {
@@ -346,6 +354,7 @@ export async function asyncProcessReveal(
       const publicRoom = buildPublicRoom(ref.state);
       await broadcastRoom(code, SERVER_EVENTS.REVEAL, { room: publicRoom });
       await broadcastRoomState(code, publicRoom);
+      console.log(`[PERF] asyncProcessReveal ${code} - total ${Date.now() - t0}ms`);
       return;
     }
     
@@ -353,6 +362,7 @@ export async function asyncProcessReveal(
     // Pequeno delay antes de retry
     await new Promise(r => setTimeout(r, 50));
   }
+  console.log(`[PERF] asyncProcessReveal ${code} - FAILED after retries, total ${Date.now() - t0}ms`);
 }
 
 export function nextStepState(state: GameRoom, playerId: string, pool: Question[]): void {

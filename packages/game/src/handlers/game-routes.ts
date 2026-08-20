@@ -17,6 +17,10 @@ import { withRoom, getApprovedQuestions } from '../persistence';
 import { broadcastRoom, broadcastRoomState } from '../realtime';
 import { requireSession, roomCodeOf, err } from './index';
 
+function perfLog(label: string, start: number) {
+  console.log(`[PERF] ${label}: ${(Date.now() - start).toFixed(0)}ms`);
+}
+
 export const gameRoutes = Router();
 
 async function broadcastNamed(code: string, event: string, publicRoom: unknown): Promise<void> {
@@ -45,39 +49,45 @@ gameRoutes.post('/rooms/:code/start', async (req, res) => {
 });
 
 gameRoutes.post('/rooms/:code/answer', async (req, res) => {
+  const t0 = Date.now();
   try {
     const session = await requireSession(req);
     const code = roomCodeOf(req, session);
+    const t1 = Date.now();
     const result = await withRoom(code, async (state, now) => {
       const { needsReveal } = submitAnswerState(state, session.playerId, String(req.body?.answer ?? ''));
       const player = state.players.find((p) => p.id === session.playerId);
       if (player) player.lastSeenAt = now;
       if (needsReveal) {
-        // Inicia revelação assíncrona
         startRevealProcess(state);
         return 'revealed';
       }
       return 'ok';
     });
+    const t2 = Date.now();
     if (!result) throw new GameError('Sala não encontrada.', 'room_not_found');
     const publicRoom = buildPublicRoom(result.state, session.playerId);
     if (result.result === 'revealed') {
       await broadcastNamed(code, SERVER_EVENTS.JUDGING, publicRoom);
       await broadcastRoomState(code, publicRoom);
-      // Fire-and-forget
       asyncProcessReveal(code).catch(console.error);
     }
     res.json({ ok: true, room: publicRoom });
+    perfLog(`POST /answer total`, t0);
+    perfLog(`  withRoom + logic`, t1);
+    perfLog(`  broadcast`, t2);
   } catch (e) {
     err(res, e);
   }
 });
 
 gameRoutes.post('/rooms/:code/reveal', async (req, res) => {
+  const t0 = Date.now();
   try {
     const session = await requireSession(req);
     const code = roomCodeOf(req, session);
     const force = req.body?.force === true;
+    const t1 = Date.now();
     const result = await withRoom(code, async (state, now) => {
       const player = state.players.find((p) => p.id === session.playerId);
       if (!player) throw new GameError('Jogador não encontrado.', 'player_not_found');
@@ -88,22 +98,22 @@ gameRoutes.post('/rooms/:code/reveal', async (req, res) => {
       if (!force && !deadlinePassed) throw new GameError('O tempo ainda não acabou.', 'too_early');
       if (force && !player.isHost) throw new GameError('Apenas o Host pode revelar agora.', 'forbidden');
       player.lastSeenAt = now;
-      // Inicia revelação assíncrona - só muda a fase, não processa a IA ainda
       startRevealProcess(state);
       return true;
     });
+    const t2 = Date.now();
     if (!result) throw new GameError('Sala não encontrada.', 'room_not_found');
     
-    // Broadcast imediato do estado "judging"
     const publicRoom = buildPublicRoom(result.state, session.playerId);
     await broadcastNamed(code, SERVER_EVENTS.JUDGING, publicRoom);
     await broadcastRoomState(code, publicRoom);
     
-    // Retorna resposta IMEDIATA para o host
     res.json({ ok: true, room: publicRoom, judging: true });
     
-    // Fire-and-forget: processa a IA em background
     asyncProcessReveal(code).catch(console.error);
+    perfLog(`POST /reveal total`, t0);
+    perfLog(`  auth + withRoom`, t1);
+    perfLog(`  broadcast + response`, t2);
   } catch (e) {
     err(res, e);
   }
@@ -131,9 +141,11 @@ gameRoutes.post('/rooms/:code/consider', async (req, res) => {
 });
 
 gameRoutes.post('/rooms/:code/next', async (req, res) => {
+  const t0 = Date.now();
   try {
     const session = await requireSession(req);
     const code = roomCodeOf(req, session);
+    const t1 = Date.now();
     const result = await withRoom(code, async (state, now) => {
       const willStartRound = state.phase === 'leaderboard' && !isGameOver(state);
       const pool = willStartRound ? await getApprovedQuestions() : [];
@@ -142,6 +154,7 @@ gameRoutes.post('/rooms/:code/next', async (req, res) => {
       if (player) player.lastSeenAt = now;
       return state.phase;
     });
+    const t2 = Date.now();
     if (!result) throw new GameError('Sala não encontrada.', 'room_not_found');
     const publicRoom = buildPublicRoom(result.state, session.playerId);
     if (result.result === 'finished') {
@@ -149,6 +162,9 @@ gameRoutes.post('/rooms/:code/next', async (req, res) => {
     }
     await broadcastRoomState(code, publicRoom);
     res.json({ ok: true, room: publicRoom });
+    perfLog(`POST /next total`, t0);
+    perfLog(`  auth + withRoom`, t1);
+    perfLog(`  broadcast`, t2);
   } catch (e) {
     err(res, e);
   }

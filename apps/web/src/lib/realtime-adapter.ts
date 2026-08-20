@@ -3,7 +3,7 @@ import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { SERVER_EVENTS } from '@segue/shared';
 import type { Room } from '@segue/shared';
 
-const FALLBACK_SYNC_INTERVAL_MS = 4000;
+const FALLBACK_SYNC_INTERVAL_MS = 1000;
 
 interface BroadcastPayload {
   payload?: { room?: Room; message?: string };

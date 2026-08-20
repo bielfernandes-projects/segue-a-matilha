@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Room, RoomSettings, Player } from '@segue/shared';
+import type { Room, RoomSettings, Player, Phase } from '@segue/shared';
 import { subscribeRoom, unsubscribeRoom } from './lib/realtime';
 import * as session from './lib/session-manager';
 import * as game from './lib/game-actions';
@@ -76,6 +76,13 @@ function gameCtx(get: () => GameState, set: (partial: Partial<GameState>) => voi
 }
 
 const TOKEN_KEY = 'segue-matilha-token';
+const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+
+function debug(...args: unknown[]) {
+  if (DEBUG) {
+    console.log('[STORE DEBUG]', ...args);
+  }
+}
 
 function clearStoredToken(): void {
   try {
@@ -109,8 +116,15 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   mergeRoom: (incoming) => {
     const { playerId, pendingAnswer } = get();
+    const validPhases: Phase[] = ['lobby', 'question', 'reveal', 'leaderboard', 'paused', 'finished'];
+    const hasValidPhase = validPhases.includes(incoming.phase as Phase);
+
     if (incoming.phase === 'reveal') {
       set({ loadingReveal: false });
+    }
+    if (!hasValidPhase) {
+      debug(`mergeRoom: skipping room update, invalid phase: ${incoming.phase}`);
+      return;
     }
     if (!pendingAnswer || !playerId) {
       set({ room: incoming });

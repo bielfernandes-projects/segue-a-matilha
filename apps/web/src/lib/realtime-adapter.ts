@@ -60,7 +60,14 @@ export class RealtimeAdapter {
         `/api/rooms/${code}/state?token=${encodeURIComponent(token)}`,
         { method: 'GET' }
       );
-      if (res.ok && res.data) this.callbacks.mergeRoom(res.data);
+      if (res.ok && res.data) {
+        console.log('[FALLBACK] API ok, merging room');
+        this.callbacks.mergeRoom(res.data);
+      } else if (res.ok && !res.data) {
+        console.log('[FALLBACK] API ok but no data');
+      } else {
+        console.log(`[FALLBACK] API not ok, error: ${res.error}`);
+      }
     };
     void poll();
     this.fallbackTimer = window.setInterval(poll, FALLBACK_SYNC_INTERVAL_MS);
@@ -75,6 +82,7 @@ export class RealtimeAdapter {
     this.channel
       .on('broadcast', { event: SERVER_EVENTS.ROOM_STATE }, ({ payload }: BroadcastPayload) => {
         if (payload?.room) {
+          console.log('[REALTIME] ROOM_STATE broadcast received');
           this.callbacks.setConnected(true);
           this.callbacks.mergeRoom(payload.room);
         }

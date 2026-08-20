@@ -30,7 +30,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
   const [editableClusters, setEditableClusters] = useState<EditableCluster[]>([]);
   const drag = useDragAndDrop(editableClusters, setEditableClusters);
 
-  if (loadingReveal || !result || !result.clusters) {
+  if (loadingReveal) {
     return (
       <div className="fixed inset-0 z-[80] bg-[#05070A]/95 backdrop-blur-sm flex flex-col items-center justify-center gap-5 px-6 text-center animate-fade-up">
         <div className="relative w-20 h-20">
@@ -42,6 +42,19 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
             IA fazendo a contagem...
           </h3>
           <p className="text-sm text-[#B0B0B0] font-medium">Agrupando as respostas do bando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!result || !result.clusters) {
+    return (
+      <div className="fixed inset-0 z-[80] bg-[#05070A]/95 backdrop-blur-sm flex flex-col items-center justify-center gap-5 px-6 text-center animate-fade-up">
+        <div className="space-y-2">
+          <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight italic text-[#FEFAE0]">
+            Aguardando resultados...
+          </h3>
+          <p className="text-sm text-[#B0B0B0] font-medium">Os dados da revelação estão chegando...</p>
         </div>
       </div>
     );

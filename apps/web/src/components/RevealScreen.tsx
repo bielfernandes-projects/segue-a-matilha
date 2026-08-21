@@ -47,7 +47,7 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [room.phase, result, room.code]);
+  }, [room.phase, room.code, result?.clusters]);
 
   if (loadingReveal) {
     return (
@@ -67,6 +67,28 @@ export const RevealScreen: React.FC<RevealScreenProps> = ({
   }
 
   if (!result || !result.clusters) {
+    // Trigger fallback fetch if we're stuck in reveal phase without data
+    useEffect(() => {
+      if (room.phase === 'reveal' && (!result || !result.clusters) && !fetchAttempted.current) {
+        const timer = setTimeout(() => {
+          fetchAttempted.current = true;
+          console.log('[RevealScreen] Timeout waiting for reveal data, fetching room state...');
+          const token = useGameStore.getState().token;
+          if (token) {
+            apiRequest<{ ok: boolean; room: Room }>(
+              `/api/rooms/${room.code}/state?token=${encodeURIComponent(token)}`,
+              { method: 'GET' }
+            ).then((res) => {
+              if (res.ok && res.data) {
+                useGameStore.getState().setRoom(res.data.room);
+              }
+            });
+          }
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
+    }, [room.phase, room.code, result?.clusters]);
+
     return (
       <div className="fixed inset-0 z-[80] bg-[#05070A]/95 backdrop-blur-sm flex flex-col items-center justify-center gap-5 px-6 text-center animate-fade-up">
         <div className="space-y-2">

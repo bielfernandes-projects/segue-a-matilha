@@ -41,6 +41,7 @@ export default function App() {
   const [modal, setModal] = useState<Modal>(null);
   const [joinCode, setJoinCode] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
+  const [isBooting, setIsBooting] = useState(true);
   const didInit = useRef(false);
 
   // Boot: rejoin automatico se houver token salvo (reconexao / refresh).
@@ -58,10 +59,15 @@ export default function App() {
     };
     if (!useGameStore.getState().token) {
       if (code) openJoin();
+      setIsBooting(false);
       return;
     }
     void rejoin().then((res) => {
       if (!res.ok && !useGameStore.getState().room) openJoin();
+      setIsBooting(false);
+    }).catch(() => {
+      setIsBooting(false);
+      openJoin();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -105,6 +111,24 @@ export default function App() {
   };
 
   const renderScreen = () => {
+    // Durante boot, mostra loading
+    if (isBooting) {
+      return (
+        <div className="fixed inset-0 z-[80] bg-[#05070A]/95 backdrop-blur-sm flex flex-col items-center justify-center gap-5 px-6 text-center animate-fade-up">
+          <div className="relative w-20 h-20">
+            <div className="absolute inset-0 rounded-full border-4 border-[#DDA15E]/20" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#DDA15E] spinner-gold" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight italic text-[#FEFAE0]">
+              Reconectando...
+            </h3>
+            <p className="text-sm text-[#B0B0B0] font-medium">Restaurando sua sessão...</p>
+          </div>
+        </div>
+      );
+    }
+
     if (!room) {
       return (
         <HomeScreen

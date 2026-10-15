@@ -25,7 +25,7 @@ Rodada após rodada, todos respondem uma pergunta sem resposta factual; uma IA a
 - **Banco de perguntas**: ~230 aprovadas no seed, sugestão de usuário (status `pending`, com **dedupe automático** contra textos já existentes no banco) e **painel admin** para curadoria (filtro de busca nas aprovadas + pendentes que não duplicam aprovadas).
 - **PWA instalável** com manifest e service worker.
 - **20 raças de avatares caninos** com cor e bordão próprios, renderizadas em **SVG inline** — visual idêntico em qualquer celular/plataforma (sem emoji, que mudam de aparência entre Android/iOS/Windows).
-- **Mobile-first**: viewport sem zoom por pinça (`maximum-scale=1`) e placar com quebras responsivas para as pontuações nunca ficarem cortadas; erros/toasts aparecem no **topo** da tela.
+- **Mobile-first**: viewport sem zoom por pinça (`maximum-scale=1`) e placar com quebras responsivas para as pontuações nunca ficarem cortadas; erros/toasts aparecem no **topo** da tela. O teclado não abre automaticamente ao entrar na pergunta, e no desktop (≥1024px) a escala é reduzida a 87,5% (`font-size` do `html`) para o jogo não ficar com zoom excessivo.
 
 ---
 

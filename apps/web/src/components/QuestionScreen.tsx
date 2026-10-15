@@ -131,7 +131,6 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
                 onChange={(e) => setAnswerInput(e.target.value)}
                 placeholder="DIGITE SEU PALPITE..."
                 maxLength={40}
-                autoFocus
                 required
                 className="w-full bg-[#11161D] border-b-4 border-[#2D3139] px-6 py-4 text-xl sm:text-2xl focus:border-[#DDA15E] outline-none text-[#FEFAE0] uppercase italic font-bold placeholder:text-[#2D3139] placeholder:not-italic rounded-t-xl transition-all"
               />

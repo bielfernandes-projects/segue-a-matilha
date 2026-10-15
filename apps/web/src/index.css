@@ -79,3 +79,8 @@ button, a, input, [role="button"] {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
 }
+
+/* Desktop: reduz a escala geral (tailwind usa rem) para o jogo não ficar "com zoom" */
+@media (min-width: 1024px) {
+  html { font-size: 87.5%; }
+}
